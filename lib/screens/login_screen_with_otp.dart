@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rak_web/theme.dart';
+import '../widgets/custom_back_button.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class LoginScreenWithOtp extends StatefulWidget {
+  const LoginScreenWithOtp({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<LoginScreenWithOtp> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
+class _LoginScreenState extends State<LoginScreenWithOtp>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _mobileController = TextEditingController();
@@ -33,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen>
     // Initialize animations
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1000),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -51,10 +52,10 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
-        curve: const Interval(0.3, 0.8, curve: Curves.elasticOut),
+        curve: const Interval(0.3, 0.8, curve: Curves.easeOutCubic),
       ),
     );
 
@@ -93,247 +94,235 @@ class _LoginScreenState extends State<LoginScreen>
             ],
           ),
         ),
-        child: Center(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Card(
-                  elevation: 20,
-                  shadowColor: Colors.blue.withOpacity(0.3),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: 400,
-                    padding: const EdgeInsets.all(32),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Logo with animation
-                          TweenAnimationBuilder<double>(
-                            tween: Tween<double>(begin: 0, end: 1),
-                            duration: const Duration(milliseconds: 800),
-                            curve: Curves.elasticOut,
-                            builder: (context, value, child) {
-                              return Transform.scale(
-                                scale: value,
-                                child: Container(
-                                  height: 80,
-                                  width: 80,
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade100,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.blue.withOpacity(0.2),
-                                        blurRadius: 10,
-                                        spreadRadius: 2,
+        child: Stack(
+          children: [
+            // Back button - only show if we can go back
+            if (Navigator.of(context).canPop())
+              const Positioned(top: 50, left: 20, child: CustomBackButton()),
+            Center(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: Card(
+                      elevation: 20,
+                      shadowColor: Colors.blue.withValues(alpha: 0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        width: 400,
+                        padding: const EdgeInsets.all(32),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // RAK Logo with animation
+                              TweenAnimationBuilder<double>(
+                                tween: Tween<double>(begin: 0, end: 1),
+                                duration: const Duration(milliseconds: 600),
+                                curve: Curves.easeOutCubic,
+                                builder: (context, value, child) {
+                                  return Transform.scale(
+                                    scale: 0.8 + (0.2 * value),
+                                    child: Container(
+                                      height: 100,
+                                      width: 100,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.blue.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                            blurRadius: 15,
+                                            spreadRadius: 3,
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.business,
-                                    size: 40,
+                                      child: ClipOval(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Image.asset(
+                                            'assets/images/rak_logo.jpg',
+                                            fit: BoxFit.contain,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                                  return const Icon(
+                                                    Icons.business,
+                                                    size: 40,
+                                                    color: Colors.blue,
+                                                  );
+                                                },
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              // Animated title
+                              TweenAnimationBuilder<double>(
+                                tween: Tween<double>(begin: 0, end: 1),
+                                duration: const Duration(milliseconds: 600),
+                                curve: Curves.easeOut,
+                                builder: (context, value, child) {
+                                  return Opacity(
+                                    opacity: value,
+                                    child: Transform.translate(
+                                      offset: Offset(0, 20 * (1 - value)),
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  'Welcome Back',
+                                  style: AppTheme.headline.copyWith(
                                     color: Colors.blue,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // Animated title
-                          TweenAnimationBuilder<double>(
-                            tween: Tween<double>(begin: 0, end: 1),
-                            duration: const Duration(milliseconds: 600),
-                            curve: Curves.easeOut,
-                            builder: (context, value, child) {
-                              return Opacity(
-                                opacity: value,
-                                child: Transform.translate(
-                                  offset: Offset(0, 20 * (1 - value)),
-                                  child: child,
-                                ),
-                              );
-                            },
-                            child: Text(
-                              'Welcome Back',
-                              style: AppTheme.headline.copyWith(
-                                color: Colors.blue,
                               ),
-                            ),
-                          ),
 
-                          const SizedBox(height: 8),
+                              const SizedBox(height: 8),
 
-                          // Animated subtitle
-                          TweenAnimationBuilder<double>(
-                            tween: Tween<double>(begin: 0, end: 1),
-                            duration: const Duration(milliseconds: 600),
-                            curve: Curves.easeOut,
-                            builder: (context, value, child) {
-                              return Opacity(
-                                opacity: value,
-                                child: Transform.translate(
-                                  offset: Offset(0, 20 * (1 - value)),
-                                  child: child,
+                              // Animated subtitle
+                              TweenAnimationBuilder<double>(
+                                tween: Tween<double>(begin: 0, end: 1),
+                                duration: const Duration(milliseconds: 600),
+                                curve: Curves.easeOut,
+                                builder: (context, value, child) {
+                                  return Opacity(
+                                    opacity: value,
+                                    child: Transform.translate(
+                                      offset: Offset(0, 20 * (1 - value)),
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: const Text(
+                                  'Sign in to continue',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
                                 ),
-                              );
-                            },
-                            child: const Text(
-                              'Sign in to continue',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
                               ),
-                            ),
-                          ),
 
-                          const SizedBox(height: 32),
+                              const SizedBox(height: 32),
 
-                          // Mobile number field with animation
-                          AnimatedTextField(
-                            controller: _mobileController,
-                            labelText: 'Mobile Number',
-                            hintText: '50XXXXXXX',
-                            prefixText: '+971 ',
-                            keyboardType: TextInputType.phone,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter mobile number';
-                              }
-                              if (!RegExp(
-                                r'^[50|52|54|55|56|58]\d{7}$',
-                              ).hasMatch(value)) {
-                                return 'Please enter valid UAE mobile number';
-                              }
-                              return null;
-                            },
-                            delay: const Duration(milliseconds: 300),
-                          ),
+                              // Mobile number field with animation
+                              AnimatedTextField(
+                                controller: _mobileController,
+                                labelText: 'Mobile Number',
+                                hintText: '50XXXXXXX',
+                                prefixText: '+971 ',
+                                keyboardType: TextInputType.phone,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter mobile number';
+                                  }
+                                  if (!RegExp(
+                                    r'^[50|52|54|55|56|58]\d{7}$',
+                                  ).hasMatch(value)) {
+                                    return 'Please enter valid UAE mobile number';
+                                  }
+                                  return null;
+                                },
+                                delay: const Duration(milliseconds: 300),
+                              ),
 
-                          const SizedBox(height: 20),
+                              const SizedBox(height: 20),
 
-                          // OTP field with animation (only after Get OTP is pressed)
-                          if (_showOtpField)
-                            AnimatedTextField(
-                              controller: _otpController,
-                              labelText: 'OTP',
-                              keyboardType: TextInputType.number,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter OTP';
-                                }
-                                return null;
-                              },
-                              delay: const Duration(milliseconds: 450),
-                            ),
-
-                          const SizedBox(height: 32),
-
-                          // Get OTP button with animation
-                          if (!_showOtpField)
-                            AnimatedButton(
-                              text: 'Get OTP',
-                              isLoading: _isLoading,
-                              onPressed: () async {
-                                if (_formKey.currentState!.validate()) {
-                                  setState(() {
-                                    _isLoading = true;
-                                  });
-
-                                  // Simulate API call
-                                  await Future.delayed(
-                                    const Duration(seconds: 1),
-                                  );
-
-                                  setState(() {
-                                    _isLoading = false;
-                                    _showOtpField = true;
-                                  });
-                                }
-                              },
-                              delay: const Duration(milliseconds: 750),
-                              textColor: Colors.white,
-                            ),
-
-                          // Login button with animation (after OTP is shown)
-                          if (_showOtpField)
-                            AnimatedButton(
-                              text: 'Login',
-                              isLoading: _isLoading,
-                              onPressed: () async {
-                                if (_formKey.currentState!.validate()) {
-                                  setState(() {
-                                    _isLoading = true;
-                                  });
-
-                                  // Simulate API call
-                                  await Future.delayed(
-                                    const Duration(seconds: 1),
-                                  );
-
-                                  setState(() {
-                                    _isLoading = false;
-                                  });
-
-                                  Navigator.pushReplacementNamed(
-                                    context,
-                                    '/registration-type',
-                                  );
-                                }
-                              },
-                              delay: const Duration(milliseconds: 750),
-                              textColor: Colors.white,
-                            ),
-
-                          const SizedBox(height: 24),
-
-                          // Quick login buttons with animation
-                          Row(
-                            children: [
-                              Expanded(
-                                child: AnimatedOutlineButton(
-                                  text: 'Quick User Login',
-                                  onPressed: () {
-                                    Navigator.pushReplacementNamed(
-                                      context,
-                                      '/registration-type',
-                                    );
+                              // OTP field with animation (only after Get OTP is pressed)
+                              if (_showOtpField)
+                                AnimatedTextField(
+                                  controller: _otpController,
+                                  labelText: 'OTP',
+                                  keyboardType: TextInputType.number,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter OTP';
+                                    }
+                                    return null;
                                   },
-                                  delay: const Duration(milliseconds: 900),
+                                  delay: const Duration(milliseconds: 450),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: AnimatedOutlineButton(
-                                  text: 'Quick Employee',
-                                  onPressed: () {
-                                    Navigator.pushReplacementNamed(
-                                      context,
-                                      '/approval-dashboard',
+
+                              const SizedBox(height: 32),
+
+                              // Get OTP button with animation
+                              if (!_showOtpField)
+                                AnimatedButton(
+                                  text: 'Get OTP',
+                                  isLoading: _isLoading,
+                                  onPressed: () async {
+                                    setState(() {
+                                      _isLoading = true;
+                                    });
+
+                                    // Simulate API call
+                                    await Future.delayed(
+                                      const Duration(seconds: 1),
                                     );
+
+                                    if (mounted) {
+                                      setState(() {
+                                        _isLoading = false;
+                                        _showOtpField = true;
+                                      });
+                                    }
                                   },
-                                  delay: const Duration(milliseconds: 1050),
+                                  delay: const Duration(milliseconds: 750),
+                                  textColor: Colors.white,
                                 ),
-                              ),
+
+                              // Login button with animation (after OTP is shown)
+                              if (_showOtpField)
+                                AnimatedButton(
+                                  text: 'Login',
+                                  isLoading: _isLoading,
+                                  onPressed: () async {
+                                    setState(() {
+                                      _isLoading = true;
+                                    });
+
+                                    // Simulate API call
+                                    await Future.delayed(
+                                      const Duration(seconds: 1),
+                                    );
+
+                                    if (mounted) {
+                                      setState(() {
+                                        _isLoading = false;
+                                      });
+
+                                      Navigator.pushReplacementNamed(
+                                        context,
+                                        '/approval-dashboard',
+                                      );
+                                    }
+                                  },
+                                  delay: const Duration(milliseconds: 750),
+                                  textColor: Colors.white,
+                                ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -544,7 +533,7 @@ class _AnimatedButtonState extends State<AnimatedButton> {
             onPressed: widget.isLoading ? null : widget.onPressed,
             style: ElevatedButton.styleFrom(
               elevation: 8,
-              shadowColor: Colors.blue.withOpacity(0.3),
+              shadowColor: Colors.blue.withValues(alpha: 0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -638,7 +627,7 @@ class _AnimatedOutlineButtonState extends State<AnimatedOutlineButton> {
                 borderRadius: BorderRadius.circular(12),
               ),
               backgroundColor: _isHovered
-                  ? Colors.blue.withOpacity(0.05)
+                  ? Colors.blue.withValues(alpha: 0.05)
                   : null,
             ),
             child: Text(

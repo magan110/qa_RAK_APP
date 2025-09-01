@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import '../../widgets/custom_back_button.dart';
 
 class OcrScreen extends StatefulWidget {
   const OcrScreen({super.key});
@@ -172,7 +173,18 @@ class _OcrScreenState extends State<OcrScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('OCR')),
+      appBar: AppBar(
+        title: const Text('OCR'),
+        leading: Navigator.of(context).canPop() 
+          ? Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CustomBackButton(
+                animated: false,
+                size: 36,
+              ),
+            )
+          : null,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

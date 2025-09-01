@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rak_web/theme.dart';
+import '../../widgets/custom_back_button.dart';
 
 class RegistrationTypeScreen extends StatefulWidget {
   const RegistrationTypeScreen({super.key});
@@ -26,20 +27,20 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
     _contractorCardController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
     _painterCardController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
     _ocrCardController = AnimationController(
       // Initialize OCR controller
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
@@ -56,35 +57,35 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
             curve: const Interval(0.2, 0.7, curve: Curves.easeOutCubic),
           ),
         );
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
-        curve: const Interval(0.3, 0.8, curve: Curves.elasticOut),
+        curve: const Interval(0.3, 0.8, curve: Curves.easeOutCubic),
       ),
     );
     _contractorCardAnimation = CurvedAnimation(
       parent: _contractorCardController,
-      curve: Curves.elasticOut,
+      curve: Curves.easeOutCubic,
     );
     _painterCardAnimation = CurvedAnimation(
       parent: _painterCardController,
-      curve: Curves.elasticOut,
+      curve: Curves.easeOutCubic,
     );
     _ocrCardAnimation = CurvedAnimation(
       // Initialize OCR animation
       parent: _ocrCardController,
-      curve: Curves.elasticOut,
+      curve: Curves.easeOutCubic,
     );
 
     _animationController.forward();
     // Stagger the card animations
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 200), () {
       if (mounted) _contractorCardController.forward();
     });
-    Future.delayed(const Duration(milliseconds: 600), () {
+    Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) _painterCardController.forward();
     });
-    Future.delayed(const Duration(milliseconds: 900), () {
+    Future.delayed(const Duration(milliseconds: 600), () {
       // Added delay for OCR card
       if (mounted) _ocrCardController.forward();
     });
@@ -173,6 +174,15 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
       ),
+      leading: Navigator.of(context).canPop() 
+        ? Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: CustomBackButton(
+              animated: false,
+              size: 36,
+            ),
+          )
+        : null,
       title: Text(
         'Registration Type',
         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
@@ -212,11 +222,11 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
         children: [
           TweenAnimationBuilder<double>(
             tween: Tween<double>(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 800),
-            curve: Curves.easeOut,
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOutCubic,
             builder: (context, value, child) {
               return Transform.translate(
-                offset: Offset(0, 30 * (1 - value)),
+                offset: Offset(0, 20 * (1 - value)),
                 child: Opacity(opacity: value, child: child),
               );
             },
@@ -232,11 +242,11 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
           const SizedBox(height: 8),
           TweenAnimationBuilder<double>(
             tween: Tween<double>(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 800),
-            curve: Curves.easeOut,
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOutCubic,
             builder: (context, value, child) {
               return Transform.translate(
-                offset: Offset(0, 30 * (1 - value)),
+                offset: Offset(0, 15 * (1 - value)),
                 child: Opacity(opacity: value, child: child),
               );
             },

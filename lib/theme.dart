@@ -54,4 +54,13 @@ class AppTheme {
     fontWeight: fontWeightBold,
     color: errorText,
   );
+
+  // Light theme
+  static ThemeData get lightTheme {
+    return ThemeData(
+      primarySwatch: Colors.blue,
+      visualDensity: VisualDensity.adaptivePlatformDensity,
+      fontFamily: 'Roboto',
+    );
+  }
 }

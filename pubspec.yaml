@@ -38,6 +38,10 @@ dependencies:
   cupertino_icons: ^1.0.8
   image_picker: ^0.8.7+4
   google_mlkit_text_recognition: ^0.7.0
+  file_picker: ^8.0.0+1
+  http: ^1.1.0
+  tesseract_ocr: ^0.5.0
+  universal_html: ^2.2.4
 
 dev_dependencies:
   flutter_test:

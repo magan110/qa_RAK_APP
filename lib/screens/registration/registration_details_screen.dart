@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rak_web/theme.dart';
+import '../../widgets/custom_back_button.dart';
 
 class RegistrationDetailsScreen extends StatefulWidget {
   const RegistrationDetailsScreen({super.key});
@@ -18,8 +19,8 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _scaleAnimation;
 
-  List<AnimationController> _cardControllers = [];
-  List<Animation<double>> _cardAnimations = [];
+  final List<AnimationController> _cardControllers = [];
+  final List<Animation<double>> _cardAnimations = [];
 
   // Sample registration data
   final Map<String, dynamic> _registrationData = {
@@ -48,12 +49,12 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen>
     super.initState();
 
     _mainController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
     _fabController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
 
@@ -72,28 +73,28 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen>
           ),
         );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(
         parent: _mainController,
-        curve: const Interval(0.3, 0.8, curve: Curves.elasticOut),
+        curve: const Interval(0.3, 0.8, curve: Curves.easeOutCubic),
       ),
     );
 
     // Initialize card animations
     for (int i = 0; i < 4; i++) {
       final controller = AnimationController(
-        duration: const Duration(milliseconds: 600),
+        duration: const Duration(milliseconds: 400),
         vsync: this,
       );
       final animation = CurvedAnimation(
         parent: controller,
-        curve: Curves.elasticOut,
+        curve: Curves.easeOutCubic,
       );
       _cardControllers.add(controller);
       _cardAnimations.add(animation);
 
       // Stagger the card animations
-      Future.delayed(Duration(milliseconds: 300 + (i * 150)), () {
+      Future.delayed(Duration(milliseconds: 200 + (i * 100)), () {
         if (mounted) controller.forward();
       });
     }
@@ -206,6 +207,12 @@ class _RegistrationDetailsScreenState extends State<RegistrationDetailsScreen>
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
       ),
+      leading: Navigator.of(context).canPop()
+          ? Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CustomBackButton(animated: false, size: 36),
+            )
+          : null,
       title: Text(
         'Registration Details',
         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),

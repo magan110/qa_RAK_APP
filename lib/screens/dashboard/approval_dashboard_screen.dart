@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rak_web/theme.dart';
+import '../../widgets/custom_back_button.dart';
 
 class ApprovalDashboardScreen extends StatefulWidget {
   const ApprovalDashboardScreen({super.key});
@@ -61,8 +62,8 @@ class _ApprovalDashboardScreenState extends State<ApprovalDashboardScreen>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _scaleAnimation;
 
-  List<AnimationController> _cardControllers = [];
-  List<Animation<double>> _cardAnimations = [];
+  final List<AnimationController> _cardControllers = [];
+  final List<Animation<double>> _cardAnimations = [];
 
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _filteredRegistrations = [];
@@ -75,12 +76,12 @@ class _ApprovalDashboardScreenState extends State<ApprovalDashboardScreen>
     _filteredRegistrations = List.from(_pendingRegistrations);
 
     _mainController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
     _fabController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
 
@@ -99,28 +100,28 @@ class _ApprovalDashboardScreenState extends State<ApprovalDashboardScreen>
           ),
         );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(
         parent: _mainController,
-        curve: const Interval(0.3, 0.8, curve: Curves.elasticOut),
+        curve: const Interval(0.3, 0.8, curve: Curves.easeOutCubic),
       ),
     );
 
     // Initialize card animations
     for (int i = 0; i < 3; i++) {
       final controller = AnimationController(
-        duration: const Duration(milliseconds: 600),
+        duration: const Duration(milliseconds: 400),
         vsync: this,
       );
       final animation = CurvedAnimation(
         parent: controller,
-        curve: Curves.elasticOut,
+        curve: Curves.easeOutCubic,
       );
       _cardControllers.add(controller);
       _cardAnimations.add(animation);
 
       // Stagger the card animations
-      Future.delayed(Duration(milliseconds: 300 + (i * 150)), () {
+      Future.delayed(Duration(milliseconds: 200 + (i * 100)), () {
         if (mounted) controller.forward();
       });
     }
@@ -151,63 +152,74 @@ class _ApprovalDashboardScreenState extends State<ApprovalDashboardScreen>
       ),
     );
 
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: _buildModernAppBar(),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.blue.shade50,
-                  Colors.white,
-                  Colors.grey.shade50,
-                ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey.shade50,
+        appBar: _buildModernAppBar(),
+        body: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.blue.shade50,
+                    Colors.white,
+                    Colors.grey.shade50,
+                  ],
+                ),
               ),
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isMobile = constraints.maxWidth < 600;
-                final isTablet =
-                    constraints.maxWidth >= 600 && constraints.maxWidth < 1200;
-                final isDesktop = constraints.maxWidth >= 1200;
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isMobile = constraints.maxWidth < 600;
+                  final isTablet =
+                      constraints.maxWidth >= 600 &&
+                      constraints.maxWidth < 1200;
+                  final isDesktop = constraints.maxWidth >= 1200;
 
-                return SingleChildScrollView(
-                  padding: EdgeInsets.all(isMobile ? 16 : (isTablet ? 24 : 32)),
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Header with animation
-                        _buildAnimatedHeader(isMobile, isTablet, isDesktop),
-
-                        SizedBox(height: isMobile ? 24 : 32),
-
-                        // Stats Cards
-                        _buildStatsCards(isMobile, isTablet, isDesktop),
-
-                        SizedBox(height: isMobile ? 24 : 32),
-
-                        // Search and Filter
-                        _buildSearchAndFilter(isMobile),
-
-                        SizedBox(height: isMobile ? 24 : 32),
-
-                        // Pending Registrations
-                        _buildPendingRegistrations(isMobile),
-
-                        SizedBox(height: isMobile ? 24 : 32),
-                      ],
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.all(
+                      isMobile ? 16 : (isTablet ? 24 : 32),
                     ),
-                  ),
-                );
-              },
+                    child: ScaleTransition(
+                      scale: _scaleAnimation,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header with animation
+                          _buildAnimatedHeader(isMobile, isTablet, isDesktop),
+
+                          SizedBox(height: isMobile ? 24 : 32),
+
+                          // Stats Cards
+                          _buildStatsCards(isMobile, isTablet, isDesktop),
+
+                          SizedBox(height: isMobile ? 24 : 32),
+
+                          // Search and Filter
+                          _buildSearchAndFilter(isMobile),
+
+                          SizedBox(height: isMobile ? 24 : 32),
+
+                          // Pending Registrations
+                          _buildPendingRegistrations(isMobile),
+
+                          SizedBox(height: isMobile ? 24 : 32),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -224,6 +236,12 @@ class _ApprovalDashboardScreenState extends State<ApprovalDashboardScreen>
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
       ),
+      leading: Navigator.of(context).canPop()
+          ? Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CustomBackButton(animated: false, size: 36),
+            )
+          : null,
       title: Text(
         'Approval Dashboard',
         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
@@ -237,7 +255,7 @@ class _ApprovalDashboardScreenState extends State<ApprovalDashboardScreen>
         IconButton(
           onPressed: () => Navigator.pushNamedAndRemoveUntil(
             context,
-            '/login',
+            '/login-password',
             (route) => false,
           ),
           icon: const Icon(Icons.logout_rounded),

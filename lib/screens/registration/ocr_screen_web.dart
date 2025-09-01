@@ -4,6 +4,7 @@ import 'dart:html' as html; // web-only file picker
 import 'dart:js_util' as js_util show promiseToFuture, callMethod;
 
 import 'package:flutter/material.dart';
+import '../../widgets/custom_back_button.dart';
 
 class OcrScreen extends StatefulWidget {
   const OcrScreen({super.key});
@@ -21,6 +22,171 @@ class _OcrScreenState extends State<OcrScreen> {
   // No development dummy data here — only real OCR results will be shown.
 
   Future<void> _pickImageAndRunOcr() async {
+    await _showImageSourceDialog();
+  }
+
+  Future<void> _showImageSourceDialog() async {
+    final source = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Image Source'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ListTile(
+            //   leading: const Icon(Icons.camera_alt),
+            //   title: const Text('Camera'),
+            //   subtitle: const Text('Take a photo'),
+            //   onTap: () => Navigator.pop(context, 'camera'),
+            // ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              subtitle: const Text('Choose from files'),
+              onTap: () => Navigator.pop(context, 'gallery'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    if (source == 'camera') {
+      await _pickFromCamera();
+    } else {
+      await _pickFromGallery();
+    }
+  }
+
+  Future<void> _pickFromCamera() async {
+    try {
+      // Show loading indicator
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const AlertDialog(
+            content: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 16),
+                Text('Accessing camera...'),
+              ],
+            ),
+          ),
+        );
+      }
+
+      // Use getUserMedia API for camera access
+      final stream = await html.window.navigator.mediaDevices!.getUserMedia({
+        'video': {'facingMode': 'environment'}, // Use back camera if available
+        'audio': false,
+      });
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      // Create video element and capture
+      final video = html.VideoElement()
+        ..srcObject = stream
+        ..autoplay = true;
+
+      // Show camera preview dialog
+      if (mounted) {
+        final result = await showDialog<String>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Camera'),
+            content: SizedBox(
+              width: 300,
+              height: 400,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: HtmlElementView(
+                      viewType:
+                          'video-${DateTime.now().millisecondsSinceEpoch}',
+                      creationParams: video,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, 'cancel'),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context, 'capture'),
+                        child: const Text('Capture'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        if (result == 'capture') {
+          await _captureFromVideo(video);
+        }
+
+        // Stop camera stream
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    } catch (e) {
+      // Close loading dialog if open
+      if (mounted) {
+        try {
+          Navigator.of(context, rootNavigator: true).pop();
+        } catch (_) {}
+      }
+
+      String errorMessage = 'Camera access failed';
+      if (e.toString().contains('NotAllowedError')) {
+        errorMessage =
+            'Camera permission denied. Please allow camera access and try again.';
+      } else if (e.toString().contains('NotFoundError')) {
+        errorMessage = 'No camera found on this device.';
+      } else if (e.toString().contains('NotSupportedError')) {
+        errorMessage = 'Camera not supported in this browser.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
+      }
+    }
+  }
+
+  Future<void> _captureFromVideo(html.VideoElement video) async {
+    try {
+      final canvas = html.CanvasElement(
+        width: video.videoWidth,
+        height: video.videoHeight,
+      );
+      final ctx = canvas.context2D;
+      ctx.drawImage(video, 0, 0);
+
+      final dataUrl = canvas.toDataUrl('image/jpeg', 0.8);
+      await _processImageFromDataUrl(dataUrl);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to capture image: $e')));
+      }
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
     final input = html.FileUploadInputElement();
     input.accept = 'image/*';
     input.click();
@@ -36,6 +202,10 @@ class _OcrScreenState extends State<OcrScreen> {
     final dataUrl = reader.result as String?;
     if (dataUrl == null) return;
 
+    await _processImageFromDataUrl(dataUrl);
+  }
+
+  Future<void> _processImageFromDataUrl(String dataUrl) async {
     setState(() {
       _imageDataUrl = dataUrl;
       _extractedText = '';
@@ -162,8 +332,9 @@ class _OcrScreenState extends State<OcrScreen> {
                 .length;
             // reject lines that contain explicit gender labels
             if (cand.toLowerCase().contains('male') ||
-                cand.toLowerCase().contains('female'))
+                cand.toLowerCase().contains('female')) {
               continue;
+            }
 
             // require at least two decent words after removing short/dirty tokens
             final wordsClean = words.where((w) {
@@ -176,7 +347,7 @@ class _OcrScreenState extends State<OcrScreen> {
             }).toList();
             if (alphaOnly.length >= 4 &&
                 (alphaRatio > 0.45 || goodWords >= 2) &&
-                wordsClean.length >= 1) {
+                wordsClean.isNotEmpty) {
               name = cand;
               break;
             }
@@ -216,13 +387,13 @@ class _OcrScreenState extends State<OcrScreen> {
     }
 
     // Cleanup noisy OCR artifacts: remove stray symbols at ends, keep letters/spaces for names
-    String _cleanTextName(String s) {
+    String cleanTextName(String s) {
       final cleaned = s.replaceAll(RegExp(r"[^A-Za-z\s\.-]"), '');
       return cleaned.replaceAll(RegExp(r"\s+"), ' ').trim();
     }
 
-    government = _cleanTextName(government);
-    name = _cleanTextName(name);
+    government = cleanTextName(government);
+    name = cleanTextName(name);
 
     // Remove single-letter prefixes/suffixes and noisy tokens
     if (name.isNotEmpty) {
@@ -238,8 +409,9 @@ class _OcrScreenState extends State<OcrScreen> {
         final onlyAlpha = p.replaceAll(RegExp(r"[^A-Za-z]"), '');
         if (onlyAlpha.length <= 2) return true;
         if (RegExp(r"\d").hasMatch(p)) return true;
-        if (onlyAlpha.length <= 3 && onlyAlpha.toUpperCase() == onlyAlpha)
+        if (onlyAlpha.length <= 3 && onlyAlpha.toUpperCase() == onlyAlpha) {
           return true;
+        }
         return false;
       });
       name = parts.join(' ').trim();
@@ -273,7 +445,16 @@ class _OcrScreenState extends State<OcrScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('OCR'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('OCR'),
+        elevation: 0,
+        leading: Navigator.of(context).canPop()
+            ? Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CustomBackButton(animated: false, size: 36),
+              )
+            : null,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -281,8 +462,8 @@ class _OcrScreenState extends State<OcrScreen> {
           children: [
             ElevatedButton.icon(
               onPressed: _isProcessing ? null : _pickImageAndRunOcr,
-              icon: const Icon(Icons.upload_file),
-              label: const Text('Pick Image & Run OCR'),
+              icon: const Icon(Icons.camera_alt),
+              label: const Text('Take Photo or Pick Image'),
             ),
             const SizedBox(height: 12),
             if (_imageDataUrl != null)

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
-import 'screens/login_screen.dart';
+import 'screens/login_screen_with_otp.dart';
+import 'screens/login_with_password_screen.dart';
 import 'screens/registration/registration_type_screen.dart';
 import 'screens/registration/contractor_registration_screen.dart';
 import 'screens/registration/painter_registration_screen.dart';
@@ -9,6 +10,10 @@ import 'screens/dashboard/approval_dashboard_screen.dart';
 import 'screens/registration/registration_details_screen.dart';
 import 'screens/registration/success_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
+
+import 'screens/file_manager_screen.dart';
+import 'screens/upload_test_screen.dart';
+
 
 void main() {
   setUrlStrategy(PathUrlStrategy());
@@ -28,9 +33,10 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      initialRoute: '/login',
+      initialRoute: '/login-password',
       routes: {
-        '/login': (context) => const LoginScreen(),
+        '/login-password': (context) => const LoginWithPasswordScreen(),
+        '/login-otp': (context) => const LoginScreenWithOtp(),
         '/registration-type': (context) => const RegistrationTypeScreen(),
         '/contractor-registration': (context) =>
             const ContractorRegistrationScreen(),
@@ -40,6 +46,8 @@ class MyApp extends StatelessWidget {
         '/registration-details': (context) => const RegistrationDetailsScreen(),
         '/success': (context) => const SuccessScreen(),
         '/dashboard': (context) => const DashboardScreen(),
+        '/file-manager': (context) => const FileManagerScreen(),
+        '/upload-test': (context) => const UploadTestScreen(),
       },
     );
   }

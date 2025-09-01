@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rak_web/theme.dart';
+import '../../widgets/custom_back_button.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,20 +21,20 @@ class _DashboardScreenState extends State<DashboardScreen>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _scaleAnimation;
 
-  List<AnimationController> _cardControllers = [];
-  List<Animation<double>> _cardAnimations = [];
+  final List<AnimationController> _cardControllers = [];
+  final List<Animation<double>> _cardAnimations = [];
 
   @override
   void initState() {
     super.initState();
 
     _mainController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
     _fabController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
 
@@ -52,28 +53,28 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
         );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(
         parent: _mainController,
-        curve: const Interval(0.3, 0.8, curve: Curves.elasticOut),
+        curve: const Interval(0.3, 0.8, curve: Curves.easeOutCubic),
       ),
     );
 
     // Initialize card animations
     for (int i = 0; i < 4; i++) {
       final controller = AnimationController(
-        duration: const Duration(milliseconds: 600),
+        duration: const Duration(milliseconds: 400),
         vsync: this,
       );
       final animation = CurvedAnimation(
         parent: controller,
-        curve: Curves.elasticOut,
+        curve: Curves.easeOutCubic,
       );
       _cardControllers.add(controller);
       _cardAnimations.add(animation);
 
       // Stagger the card animations
-      Future.delayed(Duration(milliseconds: 300 + (i * 150)), () {
+      Future.delayed(Duration(milliseconds: 200 + (i * 100)), () {
         if (mounted) controller.forward();
       });
     }
@@ -106,7 +107,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: _buildModernAppBar(),
-      floatingActionButton: _buildFloatingActionButton(),
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: SlideTransition(
@@ -177,6 +177,12 @@ class _DashboardScreenState extends State<DashboardScreen>
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
       ),
+      leading: Navigator.of(context).canPop()
+          ? Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CustomBackButton(animated: false, size: 36),
+            )
+          : null,
       title: Text(
         'Dashboard',
         style: AppTheme.headline.copyWith(color: Colors.blue.shade800),
@@ -190,29 +196,13 @@ class _DashboardScreenState extends State<DashboardScreen>
         IconButton(
           onPressed: () => Navigator.pushNamedAndRemoveUntil(
             context,
-            '/login',
+            '/login-password',
             (route) => false,
           ),
           icon: const Icon(Icons.logout_rounded),
           tooltip: 'Logout',
         ),
       ],
-    );
-  }
-
-  Widget _buildFloatingActionButton() {
-    return ScaleTransition(
-      scale: CurvedAnimation(parent: _fabController, curve: Curves.elasticOut),
-      child: FloatingActionButton.extended(
-        onPressed: _exportReport,
-        backgroundColor: Colors.blue.shade700,
-        icon: const Icon(Icons.download_rounded),
-        label: Text(
-          'Export',
-          style: AppTheme.body.copyWith(color: Colors.white),
-        ),
-        elevation: 4,
-      ),
     );
   }
 
@@ -249,11 +239,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                   children: [
                     TweenAnimationBuilder<double>(
                       tween: Tween<double>(begin: 0, end: 1),
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.easeOut,
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOutCubic,
                       builder: (context, value, child) {
                         return Transform.translate(
-                          offset: Offset(0, 30 * (1 - value)),
+                          offset: Offset(0, 20 * (1 - value)),
                           child: Opacity(opacity: value, child: child),
                         );
                       },
@@ -269,11 +259,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                     const SizedBox(height: 8),
                     TweenAnimationBuilder<double>(
                       tween: Tween<double>(begin: 0, end: 1),
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.easeOut,
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOutCubic,
                       builder: (context, value, child) {
                         return Transform.translate(
-                          offset: Offset(0, 30 * (1 - value)),
+                          offset: Offset(0, 15 * (1 - value)),
                           child: Opacity(opacity: value, child: child),
                         );
                       },
@@ -283,10 +273,13 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
               TweenAnimationBuilder<double>(
                 tween: Tween<double>(begin: 0, end: 1),
-                duration: const Duration(milliseconds: 800),
-                curve: Curves.easeOut,
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeOutCubic,
                 builder: (context, value, child) {
-                  return Transform.scale(scale: value, child: child);
+                  return Transform.scale(
+                    scale: 0.8 + (0.2 * value),
+                    child: child,
+                  );
                 },
                 child: Container(
                   width: isMobile ? 50 : 60,
