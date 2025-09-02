@@ -28,37 +28,139 @@
   
   <!-- Camera and media permissions -->
   <meta name="permissions" content="camera microphone">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  
+  <!-- Permission Policy for InAppWebView -->
+  <meta http-equiv="Permissions-Policy" content="camera=*, microphone=*, geolocation=*">
+  
+  <!-- Feature Policy fallback for older browsers -->
+  <meta http-equiv="Feature-Policy" content="camera *; microphone *; geolocation *">
+  
+  <!-- Content Security Policy for media access -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: *; media-src 'self' blob: data: *;">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
   <title>rak_web</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- InAppWebView scroll optimization -->
+  <style>
+    html, body {
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      touch-action: pan-y !important;
+      overscroll-behavior: contain !important;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+    }
+    
+    /* Fix for InAppWebView scrolling */
+    * {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+    }
+    
+    /* Allow scrolling on Flutter content */
+    flt-glass-pane, flt-scene-host {
+      touch-action: pan-y !important;
+    }
+  </style>
 </head>
 <body>
-  <script src="https://unpkg.com/tesseract.js@v4.0.2/dist/tesseract.min.js"></script>
+  <!-- Google ML Kit for Text Recognition -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-text@0.10.0"></script>
+  
+  <!-- Tesseract.js as fallback -->
+  <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
+  
+  <!-- Enhanced OCR processing scripts -->
+  <script src="mlkit-ocr.js"></script>
+  <script src="ocr.js"></script>
+  
+  <!-- Camera helper for InAppWebView -->
+  <script src="camera-helper.js"></script>
+  
+  <!-- InAppWebView scrolling fix -->
   <script>
-    async function _extractText(imagePath, mapData) {
-      console.log('Tesseract JS _extractText called with:', imagePath, mapData);
-      try {
-        var worker = await Tesseract.createWorker();
-        await worker.loadLanguage(mapData.language);
-        await worker.initialize(mapData.language);
-        await worker.setParameters(mapData.args);
-        var rtn = await worker.recognize(imagePath, {}, worker.id);
-        console.log('Tesseract recognize result:', rtn);
-        await worker.terminate();
-        if (mapData.args["tessjs_create_hocr"]) {
-          return rtn.data.hocr;
+    // Enhanced InAppWebView scrolling fix
+    function forceEnableScrolling() {
+      console.log('Applying InAppWebView scrolling fixes...');
+      
+      // Enable touch scrolling on root elements
+      document.body.style.touchAction = 'pan-y';
+      document.documentElement.style.touchAction = 'pan-y';
+      document.body.style.overflowY = 'auto';
+      document.documentElement.style.overflowY = 'auto';
+      
+      // Disable any scroll blocking
+      document.body.style.overflow = 'visible';
+      document.documentElement.style.overflow = 'visible';
+      
+      // Fix Flutter web elements
+      const flutterElements = document.querySelectorAll('flt-glass-pane, flt-scene-host, canvas, flt-semantics-host');
+      flutterElements.forEach(function(element) {
+        element.style.touchAction = 'pan-y';
+        element.style.overflow = 'visible';
+        element.style.height = 'auto';
+        element.style.minHeight = '100vh';
+      });
+      
+      // Force scroll events to work
+      let isScrolling = false;
+      document.addEventListener('touchstart', function(e) {
+        isScrolling = true;
+        console.log('Touch start detected');
+      }, { passive: true });
+      
+      document.addEventListener('touchmove', function(e) {
+        if (isScrolling) {
+          console.log('Touch move detected - scrolling allowed');
+          // Force scroll behavior
+          e.stopPropagation();
         }
-        return rtn.data.text;
-      } catch (e) {
-        console.error('Tesseract JS error:', e);
-        return '';
-      }
+      }, { passive: true, capture: true });
+      
+      document.addEventListener('touchend', function(e) {
+        isScrolling = false;
+        console.log('Touch end detected');
+      }, { passive: true });
     }
+    
+    // Apply fixes immediately and on load
+    forceEnableScrolling();
+    
+    window.addEventListener('load', function() {
+      forceEnableScrolling();
+      
+      // Observer for dynamic Flutter elements
+      const observer = new MutationObserver(function(mutations) {
+        forceEnableScrolling();
+      });
+      
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+      
+      // Periodic fix application (for stubborn InAppWebView)
+      setInterval(forceEnableScrolling, 1000);
+    });
   </script>
+  
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

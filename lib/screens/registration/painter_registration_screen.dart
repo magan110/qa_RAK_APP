@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:rak_web/theme.dart';
 import '../../widgets/custom_back_button.dart';
 import '../../widgets/file_upload_widget.dart';
 import '../../services/uae_id_ocr_service.dart';
-
-String? _emiratesIdImage;
-String? _photoImage;
-String? _chequeBookImage;
 
 class PainterRegistrationScreen extends StatefulWidget {
   const PainterRegistrationScreen({super.key});
@@ -253,47 +249,40 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
     return 'Please upload both front and back sides of your Emirates ID to auto-fill the form fields.';
   }
 
-  // Fill Emirates ID form fields with extracted data
+  // Enhanced form field filling with automatic mapping
   void _fillEmiratesIdFields(UAEIdData data, {bool mergeWithExisting = false}) {
-    print('=== FILLING FORM FIELDS ===');
+    print('=== ENHANCED FORM FIELD FILLING ===');
     print('Merge with existing: $mergeWithExisting');
     print('Input data: ${data.toJson()}');
 
-    // Check if data is completely empty
-    final hasAnyData =
-        data.name != null ||
-        data.idNumber != null ||
-        data.dateOfBirth != null ||
-        data.nationality != null ||
-        data.occupation != null ||
-        data.employer != null;
-    print('Has any data to fill: $hasAnyData');
+    // Get enhanced field mapping
+    final fieldMapping = UAEIdOCRService.getFormFieldMapping(data);
+    print('Field mapping: $fieldMapping');
 
-    // Fill basic info fields if available (only if not merging or field is empty)
-    if (data.name != null &&
-        data.name!.isNotEmpty &&
+    // Auto-fill personal details from name
+    if (fieldMapping['firstName'] != null &&
         (!mergeWithExisting || _firstNameController.text.isEmpty)) {
-      // Split the name into first, middle, last
-      final nameParts = data.name!.split(' ');
-      if (nameParts.isNotEmpty) {
-        _firstNameController.text = nameParts.first;
-        print('Set first name: ${nameParts.first}');
-      }
-      if (nameParts.length > 1) {
-        _lastNameController.text = nameParts.last;
-        print('Set last name: ${nameParts.last}');
-      }
-      if (nameParts.length > 2) {
-        _middleNameController.text = nameParts
-            .skip(1)
-            .take(nameParts.length - 2)
-            .join(' ');
-        print('Set middle name: ${_middleNameController.text}');
-      }
+      _firstNameController.text = fieldMapping['firstName']!;
+      print('Auto-filled first name: ${fieldMapping['firstName']}');
+    }
+    
+    if (fieldMapping['middleName'] != null &&
+        (!mergeWithExisting || _middleNameController.text.isEmpty)) {
+      _middleNameController.text = fieldMapping['middleName']!;
+      print('Auto-filled middle name: ${fieldMapping['middleName']}');
+    }
+    
+    if (fieldMapping['lastName'] != null &&
+        (!mergeWithExisting || _lastNameController.text.isEmpty)) {
+      _lastNameController.text = fieldMapping['lastName']!;
+      print('Auto-filled last name: ${fieldMapping['lastName']}');
+    }
 
-      // Also fill the ID name field
-      _idNameController.text = data.name!;
-      print('Set ID name: ${data.name}');
+    // Fill ID name field
+    if (fieldMapping['idName'] != null &&
+        (!mergeWithExisting || _idNameController.text.isEmpty)) {
+      _idNameController.text = fieldMapping['idName']!;
+      print('Set ID name: ${fieldMapping['idName']}');
     }
 
     // Fill Emirates ID specific fields (merge logic for each field)
@@ -539,100 +528,84 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                         title: 'Emirates ID',
                         icon: Icons.badge_outlined,
                         children: [
+                          // Emirates ID Upload with OCR Processing Status
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor().withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _getStatusColor(),
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      _getStatusIcon(),
+                                      color: _getStatusColor(),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Emirates ID Processing Status',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: _getStatusColor(),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _getStatusMessage(),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
+                                if (_isProcessingEmiratesId) ...[
+                                  const SizedBox(height: 12),
+                                  const LinearProgressIndicator(),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                           // Front Side Upload
                           FileUploadWidget(
                             label: 'Emirates ID - Front Side',
                             icon: Icons.credit_card_outlined,
-                            onFileSelected: (value) async {
+                            onFileSelected: (value) {
                               setState(() => _emiratesIdFrontImage = value);
-
-                              if (value != null && value.isNotEmpty) {
-                                print(
-                                  'Emirates ID Front image selected: $value',
-                                );
-                                // Check if both sides are now available for processing
-                                await _checkAndProcessEmiratesId();
-                              }
+                              _checkAndProcessEmiratesId();
                             },
                             delay: const Duration(milliseconds: 100),
-                            allowedExtensions: kIsWeb
-                                ? const ['*']
-                                : const ['jpg', 'jpeg', 'png', 'pdf'],
+                            allowedExtensions: const ['jpg', 'jpeg', 'png'],
                             maxSizeInMB: 5.0,
                             currentFilePath: _emiratesIdFrontImage,
                             formType: 'painter',
                           ),
-
                           const SizedBox(height: 16),
-
                           // Back Side Upload
                           FileUploadWidget(
                             label: 'Emirates ID - Back Side',
                             icon: Icons.credit_card_outlined,
-                            onFileSelected: (value) async {
+                            onFileSelected: (value) {
                               setState(() => _emiratesIdBackImage = value);
-
-                              if (value != null && value.isNotEmpty) {
-                                print(
-                                  'Emirates ID Back image selected: $value',
-                                );
-                                // Check if both sides are now available for processing
-                                await _checkAndProcessEmiratesId();
-                              }
+                              _checkAndProcessEmiratesId();
                             },
                             delay: const Duration(milliseconds: 200),
-                            allowedExtensions: kIsWeb
-                                ? const ['*']
-                                : const ['jpg', 'jpeg', 'png', 'pdf'],
+                            allowedExtensions: const ['jpg', 'jpeg', 'png'],
                             maxSizeInMB: 5.0,
                             currentFilePath: _emiratesIdBackImage,
                             formType: 'painter',
                           ),
-
-                          // Upload Status and Processing Indicator
-                          Container(
-                            margin: const EdgeInsets.symmetric(vertical: 16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: _getStatusColor().withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: _getStatusColor().withValues(alpha: 0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                if (_isProcessingEmiratesId)
-                                  SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: _getStatusColor(),
-                                    ),
-                                  )
-                                else
-                                  Icon(
-                                    _getStatusIcon(),
-                                    size: 20,
-                                    color: _getStatusColor(),
-                                  ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    _getStatusMessage(),
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: _getStatusColor(),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
                           const SizedBox(height: 16),
                           _buildModernTextField(
                             controller: _emiratesIdController,
@@ -1302,6 +1275,57 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
         ),
       ),
     );
+  }
+
+  // Map OCR results to form fields
+  void _mapOcrResultsToFields(Map<String, String> ocrResults) {
+    print('=== MAPPING OCR RESULTS ===');
+    print('OCR Results: $ocrResults');
+
+    // Map basic fields
+    if (ocrResults['name'] != null && ocrResults['name']!.isNotEmpty) {
+      final nameParts = ocrResults['name']!.split(' ');
+      if (nameParts.isNotEmpty) {
+        _firstNameController.text = nameParts.first;
+        _idNameController.text = ocrResults['name']!;
+      }
+      if (nameParts.length > 1) {
+        _lastNameController.text = nameParts.last;
+      }
+      if (nameParts.length > 2) {
+        _middleNameController.text = nameParts
+            .skip(1)
+            .take(nameParts.length - 2)
+            .join(' ');
+      }
+    }
+
+    if (ocrResults['aadhaar'] != null && ocrResults['aadhaar']!.isNotEmpty) {
+      _emiratesIdController.text = ocrResults['aadhaar']!;
+    }
+
+    if (ocrResults['dob'] != null && ocrResults['dob']!.isNotEmpty) {
+      _dobController.text = ocrResults['dob']!;
+    }
+
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text('OCR data mapped to form fields successfully!'),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+
+    setState(() {});
   }
 
   void _submitForm() async {

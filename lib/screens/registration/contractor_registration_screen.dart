@@ -271,47 +271,40 @@ class _ContractorRegistrationScreenState
     return 'Please upload both front and back sides of your Emirates ID to auto-fill the form fields.';
   }
 
-  // Fill Emirates ID form fields with extracted data
+  // Enhanced form field filling with automatic mapping
   void _fillEmiratesIdFields(UAEIdData data, {bool mergeWithExisting = false}) {
-    print('=== FILLING FORM FIELDS ===');
+    print('=== ENHANCED FORM FIELD FILLING ===');
     print('Merge with existing: $mergeWithExisting');
     print('Input data: ${data.toJson()}');
 
-    // Check if data is completely empty
-    final hasAnyData =
-        data.name != null ||
-        data.idNumber != null ||
-        data.dateOfBirth != null ||
-        data.nationality != null ||
-        data.occupation != null ||
-        data.employer != null;
-    print('Has any data to fill: $hasAnyData');
+    // Get enhanced field mapping
+    final fieldMapping = UAEIdOCRService.getFormFieldMapping(data);
+    print('Field mapping: $fieldMapping');
 
-    // Fill basic info fields if available (only if not merging or field is empty)
-    if (data.name != null &&
-        data.name!.isNotEmpty &&
+    // Auto-fill personal details from name
+    if (fieldMapping['firstName'] != null &&
         (!mergeWithExisting || _firstNameController.text.isEmpty)) {
-      // Split the name into first, middle, last
-      final nameParts = data.name!.split(' ');
-      if (nameParts.isNotEmpty) {
-        _firstNameController.text = nameParts.first;
-        print('Set first name: ${nameParts.first}');
-      }
-      if (nameParts.length > 1) {
-        _lastNameController.text = nameParts.last;
-        print('Set last name: ${nameParts.last}');
-      }
-      if (nameParts.length > 2) {
-        _middleNameController.text = nameParts
-            .skip(1)
-            .take(nameParts.length - 2)
-            .join(' ');
-        print('Set middle name: ${_middleNameController.text}');
-      }
+      _firstNameController.text = fieldMapping['firstName']!;
+      print('Auto-filled first name: ${fieldMapping['firstName']}');
+    }
+    
+    if (fieldMapping['middleName'] != null &&
+        (!mergeWithExisting || _middleNameController.text.isEmpty)) {
+      _middleNameController.text = fieldMapping['middleName']!;
+      print('Auto-filled middle name: ${fieldMapping['middleName']}');
+    }
+    
+    if (fieldMapping['lastName'] != null &&
+        (!mergeWithExisting || _lastNameController.text.isEmpty)) {
+      _lastNameController.text = fieldMapping['lastName']!;
+      print('Auto-filled last name: ${fieldMapping['lastName']}');
+    }
 
-      // Also fill the ID name field
-      _idNameController.text = data.name!;
-      print('Set ID name: ${data.name}');
+    // Fill ID name field
+    if (fieldMapping['idName'] != null &&
+        (!mergeWithExisting || _idNameController.text.isEmpty)) {
+      _idNameController.text = fieldMapping['idName']!;
+      print('Set ID name: ${fieldMapping['idName']}');
     }
 
     // Fill Emirates ID specific fields (merge logic for each field)

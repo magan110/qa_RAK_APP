@@ -91,7 +91,7 @@ class _LoginWithPasswordScreenState extends State<LoginWithPasswordScreen>
         });
 
         if (success) {
-          Navigator.pushReplacementNamed(context, '/approval-dashboard');
+          Navigator.pushReplacementNamed(context, '/home');
         } else {
           _showErrorSnackBar('Invalid credentials. Please try again.');
         }
@@ -130,156 +130,48 @@ class _LoginWithPasswordScreenState extends State<LoginWithPasswordScreen>
     );
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0A0A0A) : null,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: isDark
-              ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF0A0A0A),
-                    Color(0xFF1A1A2E),
-                    Color(0xFF16213E),
-                  ],
-                )
-              : const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFf8f9ff),
-                    Color(0xFFe3f2fd),
-                    Color(0xFFffffff),
-                  ],
-                ),
-        ),
-        child: Stack(
-          children: [
-            // Dark mode toggle
-            Positioned(top: 50, right: 20, child: _buildDarkModeToggle()),
-            if (Navigator.of(context).canPop())
-              const Positioned(top: 50, left: 20, child: CustomBackButton()),
-            Center(
-              child: SingleChildScrollView(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: ScaleTransition(
-                      scale: _scaleAnimation,
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 420),
-                        margin: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Card(
-                          elevation: isDark ? 0 : 24,
-                          shadowColor: isDark
-                              ? Colors.transparent
-                              : Colors.blue.withValues(alpha: 0.15),
-                          color: isDark
-                              ? const Color(0xFF1E1E1E).withValues(alpha: 0.95)
-                              : Colors.white.withValues(alpha: 0.98),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28),
-                            side: isDark
-                                ? BorderSide(
-                                    color: Colors.white.withValues(alpha: 0.1),
-                                    width: 1,
-                                  )
-                                : BorderSide.none,
-                          ),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.all(40),
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _buildAnimatedLogo(),
-                                  const SizedBox(height: 32),
-                                  _buildAnimatedTitle(),
-                                  const SizedBox(height: 8),
-
-                                  ModernTextField(
-                                    controller: _userIdController,
-                                    labelText: 'User ID',
-                                    hintText: 'Enter your user ID',
-                                    keyboardType: TextInputType.text,
-                                    isDark: isDark,
-                                    prefixIcon: Icons.person_outline,
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Please enter your user ID';
-                                      }
-                                      return null;
-                                    },
-                                    delay: const Duration(milliseconds: 300),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  ModernPasswordField(
-                                    controller: _passwordController,
-                                    labelText: 'Password',
-                                    hintText: 'Enter your password',
-                                    isDark: isDark,
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Please enter your password';
-                                      }
-                                      if (value.length < 6) {
-                                        return 'Password must be at least 6 characters';
-                                      }
-                                      return null;
-                                    },
-                                    delay: const Duration(milliseconds: 450),
-                                  ),
-
-                                  // Remember me and forgot password
-                                  const SizedBox(height: 16),
-                                  _buildRememberMeSection(),
-
-                                  const SizedBox(height: 32),
-                                  ModernButton(
-                                    text: 'Sign In',
-                                    isLoading: _isLoading,
-                                    onPressed: _handleLogin,
-                                    isPrimary: true,
-                                    isDark: isDark,
-                                    delay: const Duration(milliseconds: 600),
-                                  ),
-
-                                  const SizedBox(height: 16),
-                                  ModernButton(
-                                    text: 'Continue with OTP',
-                                    isLoading: false,
-                                    onPressed: () async {
-                                      await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const LoginScreenWithOtp(),
-                                        ),
-                                      );
-                                    },
-                                    isPrimary: false,
-                                    isDark: isDark,
-                                    delay: const Duration(milliseconds: 750),
-                                  ),
-
-                                  const SizedBox(height: 24),
-                                  _buildSignUpSection(),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+      backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = constraints.maxWidth < 600;
+          final isTablet = constraints.maxWidth >= 600 && constraints.maxWidth < 1200;
+          final isDesktop = constraints.maxWidth >= 1200;
+          
+          return Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: isDark
+                  ? const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF0A0A0A),
+                        Color(0xFF1A1A2E),
+                        Color(0xFF16213E),
+                      ],
+                    )
+                  : const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFFf8f9ff),
+                        Color(0xFFe3f2fd),
+                        Color(0xFFffffff),
+                      ],
                     ),
-                  ),
-                ),
-              ),
             ),
-          ],
-        ),
+            child: Stack(
+              children: [
+                if (Navigator.of(context).canPop())
+                  const Positioned(top: 50, left: 20, child: CustomBackButton()),
+                isMobile 
+                  ? _buildMobileLayout(isDark)
+                  : _buildWebLayout(isDark, isTablet, isDesktop),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -300,7 +192,7 @@ class _LoginWithPasswordScreenState extends State<LoginWithPasswordScreen>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withValues(alpha: 0.2),
+                  color: Colors.blue.withOpacity(0.2),
                   blurRadius: 15,
                   spreadRadius: 3,
                 ),
@@ -345,6 +237,197 @@ class _LoginWithPasswordScreenState extends State<LoginWithPasswordScreen>
     );
   }
 
+  Widget _buildMobileLayout(bool isDark) {
+    return Center(
+      child: SingleChildScrollView(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 420),
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                child: Card(
+                  elevation: isDark ? 0 : 24,
+                  shadowColor: isDark
+                      ? Colors.transparent
+                      : Colors.blue.withOpacity(0.15),
+                  color: isDark
+                      ? const Color(0xFF1E1E1E).withOpacity(0.95)
+                      : Colors.white.withOpacity(0.98),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                    side: isDark
+                        ? BorderSide(
+                            color: Colors.white.withOpacity(0.1),
+                            width: 1,
+                          )
+                        : BorderSide.none,
+                  ),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.all(40),
+                    child: _buildLoginForm(isDark),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWebLayout(bool isDark, bool isTablet, bool isDesktop) {
+    return Row(
+      children: [
+        // Left side - Branding/Info
+        Expanded(
+          flex: isDesktop ? 3 : 2,
+          child: Container(
+            padding: EdgeInsets.all(isDesktop ? 80 : 60),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildAnimatedLogo(),
+                SizedBox(height: isDesktop ? 40 : 32),
+                Text(
+                  'Welcome Back',
+                  style: TextStyle(
+                    fontSize: isDesktop ? 48 : 36,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.blue.shade800,
+                  ),
+                ),
+                SizedBox(height: isDesktop ? 20 : 16),
+                Text(
+                  'Sign in to access your RAK account and manage your registrations.',
+                  style: TextStyle(
+                    fontSize: isDesktop ? 18 : 16,
+                    color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Right side - Login Form
+        Expanded(
+          flex: isDesktop ? 2 : 3,
+          child: Container(
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: isDark 
+                  ? const Color(0xFF1E1E1E).withOpacity(0.95)
+                  : Colors.white.withOpacity(0.98),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(-5, 0),
+                ),
+              ],
+            ),
+            child: Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(isDesktop ? 60 : 40),
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: _buildLoginForm(isDark),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoginForm(bool isDark) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildAnimatedTitle(),
+          const SizedBox(height: 32),
+          ModernTextField(
+            controller: _userIdController,
+            labelText: 'User ID',
+            hintText: 'Enter your user ID',
+            keyboardType: TextInputType.text,
+            isDark: isDark,
+            prefixIcon: Icons.person_outline,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your user ID';
+              }
+              return null;
+            },
+            delay: const Duration(milliseconds: 300),
+          ),
+          const SizedBox(height: 24),
+          ModernPasswordField(
+            controller: _passwordController,
+            labelText: 'Password',
+            hintText: 'Enter your password',
+            isDark: isDark,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your password';
+              }
+              if (value.length < 6) {
+                return 'Password must be at least 6 characters';
+              }
+              return null;
+            },
+            delay: const Duration(milliseconds: 450),
+          ),
+          const SizedBox(height: 16),
+          _buildRememberMeSection(),
+          const SizedBox(height: 32),
+          ModernButton(
+            text: 'Sign In',
+            isLoading: _isLoading,
+            onPressed: _handleLogin,
+            isPrimary: true,
+            isDark: isDark,
+            delay: const Duration(milliseconds: 600),
+          ),
+          const SizedBox(height: 16),
+          ModernButton(
+            text: 'Continue with OTP',
+            isLoading: false,
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LoginScreenWithOtp(),
+                ),
+              );
+            },
+            isPrimary: false,
+            isDark: isDark,
+            delay: const Duration(milliseconds: 750),
+          ),
+          const SizedBox(height: 24),
+          _buildSignUpSection(),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAnimatedTitle() {
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: 1),
@@ -366,48 +449,6 @@ class _LoginWithPasswordScreenState extends State<LoginWithPasswordScreen>
     );
   }
 
-  Widget _buildDarkModeToggle() {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 800),
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Container(
-            decoration: BoxDecoration(
-              color: _isDarkMode
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(24),
-                onTap: () {
-                  setState(() {
-                    _isDarkMode = !_isDarkMode;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: Icon(
-                      _isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                      key: ValueKey(_isDarkMode),
-                      color: _isDarkMode ? Colors.amber : Colors.grey.shade700,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildRememberMeSection() {
     return TweenAnimationBuilder<double>(
@@ -725,7 +766,7 @@ class _AnimatedButtonState extends State<AnimatedButton> {
             onPressed: widget.isLoading ? null : widget.onPressed,
             style: ElevatedButton.styleFrom(
               elevation: 8,
-              shadowColor: Colors.blue.withValues(alpha: 0.3),
+              shadowColor: Colors.blue.withOpacity(0.3),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -871,7 +912,7 @@ class _ModernTextFieldState extends State<ModernTextField> {
               ),
               filled: true,
               fillColor: widget.isDark
-                  ? Colors.grey.shade800.withValues(alpha: 0.3)
+                  ? Colors.grey.shade800.withOpacity(0.3)
                   : Colors.grey.shade50,
               labelStyle: TextStyle(
                 color: _isFocused
@@ -1020,7 +1061,7 @@ class _ModernPasswordFieldState extends State<ModernPasswordField> {
               ),
               filled: true,
               fillColor: widget.isDark
-                  ? Colors.grey.shade800.withValues(alpha: 0.3)
+                  ? Colors.grey.shade800.withOpacity(0.3)
                   : Colors.grey.shade50,
               labelStyle: TextStyle(
                 color: _isFocused
@@ -1104,7 +1145,7 @@ class _ModernButtonState extends State<ModernButton> {
                   style:
                       ElevatedButton.styleFrom(
                         elevation: _isHovered ? 12 : 6,
-                        shadowColor: Colors.blue.withValues(alpha: 0.3),
+                        shadowColor: Colors.blue.withOpacity(0.3),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -1164,7 +1205,7 @@ class _ModernButtonState extends State<ModernButton> {
                     ),
                     backgroundColor: _isHovered
                         ? (widget.isDark
-                              ? Colors.grey.shade800.withValues(alpha: 0.5)
+                              ? Colors.grey.shade800.withOpacity(0.5)
                               : Colors.grey.shade50)
                         : null,
                   ),
@@ -1247,7 +1288,7 @@ class _AnimatedOutlineButtonState extends State<AnimatedOutlineButton> {
                 borderRadius: BorderRadius.circular(12),
               ),
               backgroundColor: _isHovered
-                  ? Colors.blue.withValues(alpha: 0.05)
+                  ? Colors.blue.withOpacity(0.05)
                   : null,
             ),
             child: Text(

@@ -16,14 +16,34 @@ const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 } // 15MB limit
 });
 
+// OCR processing (optional server-side enhancement)
+let Tesseract;
+try {
+  Tesseract = require('tesseract.js');
+} catch (e) {
+  console.log('Tesseract.js not installed - OCR will use client-side processing');
+}
+
 const PUBLIC_DIR = path.resolve(__dirname, "../build/web"); // Flutter build
 const HTTP_PORT = 8080;
 const HTTPS_PORT = 8520;
-const HOSTS = ["192.168.100.127", "10.235.234.182"]; // Primary and fallback hosts
+const HOSTS = ["10.62.217.182", "192.168.100.127", "10.235.234.182"]; // Primary and fallback hosts
 
 // Change to your backend. Keep calls in Flutter as "/api/...".
 const API_PREFIX = "/api";
 const API_TARGET = "https://127.0.0.1:7173"; // <-- your backend
+
+// Add CORS headers for webview compatibility
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 
 // Add JSON and URL-encoded parsing
 app.use(express.json({ limit: '15mb' }));
@@ -61,6 +81,33 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   } catch (error) {
     console.error('Upload error:', error);
     res.status(500).json({ error: 'Upload failed' });
+  }
+});
+
+// OCR processing endpoint
+app.post('/api/ocr', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded for OCR' });
+    }
+
+    if (!Tesseract) {
+      return res.status(501).json({ error: 'OCR not available on server' });
+    }
+
+    const { data: { text } } = await Tesseract.recognize(req.file.path, 'eng');
+    
+    // Clean up uploaded file
+    fs.unlinkSync(req.file.path);
+    
+    res.json({
+      success: true,
+      text: text,
+      extractedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('OCR error:', error);
+    res.status(500).json({ error: 'OCR processing failed' });
   }
 });
 

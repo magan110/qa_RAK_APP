@@ -42,6 +42,8 @@ dependencies:
   http: ^1.1.0
   tesseract_ocr: ^0.5.0
   universal_html: ^2.2.4
+  qr_code_scanner_plus: ^2.0.10+1
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as Math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -82,93 +83,111 @@ class UAEIdOCRService {
 
   // Main OCR processing method
   static Future<UAEIdData> processUAEId(String imagePath) async {
-    // Check if running on web - ML Kit doesn't work on web
     if (kIsWeb) {
       print('=== WEB ENVIRONMENT DETECTED ===');
-      print('ML Kit not supported on web, using web-compatible OCR');
-      return _processWebOCR(imagePath);
+      return _processWebMLKit(imagePath);
     }
 
     try {
       print('=== STARTING ML KIT OCR ===');
-      print('Processing image: $imagePath');
-
       final inputImage = InputImage.fromFilePath(imagePath);
       final recognizedText = await _textRecognizer.processImage(inputImage);
 
-      print('=== ML KIT SUCCESS ===');
-      print('Extracted text length: ${recognizedText.text.length}');
-      print(
-        'Extracted text preview: ${recognizedText.text.length > 100 ? "${recognizedText.text.substring(0, 100)}..." : recognizedText.text}',
-      );
-
       if (recognizedText.text.isEmpty) {
-        print('WARNING: No text extracted from image');
         return UAEIdData();
       }
 
-      final extractedData = _extractDataFromText(recognizedText.text);
-      print('=== EXTRACTION RESULT ===');
-      print('Extracted data: ${extractedData.toJson()}');
-
-      return extractedData;
+      return _extractDataFromText(recognizedText.text);
     } catch (e) {
-      print('=== ML KIT FAILED ===');
       print('ML Kit error: $e');
       return UAEIdData();
     }
   }
 
-  // Web-compatible OCR processing using Tesseract
-  static Future<UAEIdData> _processWebOCR(String imagePath) async {
-    print('=== WEB TESSERACT OCR PROCESSING ===');
-    print('Image path: $imagePath');
-
+  // Web-compatible ML Kit processing
+  static Future<UAEIdData> _processWebMLKit(String imagePath) async {
     try {
-      // Convert blob URL to local file path for Tesseract
-      final extractedText = await _extractTextWithTesseract(imagePath);
+      print('=== WEB ML KIT OCR PROCESSING START ===');
+      print('Processing image: $imagePath');
+
+      final extractedText = await _extractTextWithGoogleMLKit(imagePath);
 
       if (extractedText.isEmpty) {
-        print('WARNING: No text extracted from image via Tesseract');
+        print('No text extracted from Google ML Kit OCR');
         return UAEIdData();
       }
 
-      print('=== TESSERACT SUCCESS ===');
       print('Extracted text length: ${extractedText.length}');
-      print(
-        'Extracted text preview: ${extractedText.length > 200 ? "${extractedText.substring(0, 200)}..." : extractedText}',
-      );
-
-      // Use the same pattern extraction logic
       final extractedData = _extractDataFromText(extractedText);
-      print('=== TESSERACT EXTRACTION RESULT ===');
-      print('Extracted data: ${extractedData.toJson()}');
+
+      print('=== ML KIT EXTRACTION RESULTS ===');
+      print('Name: ${extractedData.name}');
+      print('ID Number: ${extractedData.idNumber}');
+      print('Date of Birth: ${extractedData.dateOfBirth}');
+      print('Nationality: ${extractedData.nationality}');
+      print('Occupation: ${extractedData.occupation}');
+      print('Employer: ${extractedData.employer}');
+      print('Is Valid: ${extractedData.isValid}');
+      print('=== END ML KIT EXTRACTION RESULTS ===');
 
       return extractedData;
     } catch (e) {
-      print('=== TESSERACT OCR FAILED ===');
-      print('Tesseract error: $e');
+      print('Web ML Kit OCR error: $e');
       return UAEIdData();
     }
   }
 
-  // Extract text using Tesseract OCR
-  static Future<String> _extractTextWithTesseract(String imagePath) async {
+  // Extract text using Google ML Kit for webview
+  static Future<String> _extractTextWithGoogleMLKit(String imagePath) async {
     try {
-      print('Starting Tesseract OCR...');
-      final result = await js.context.callMethod('_extractText', [
-        imagePath,
-        js.JsObject.jsify({
-          'language': 'eng',
-          'args': {'psm': '4', 'preserve_interword_spaces': '1'},
-        }),
+      print('Calling Google ML Kit OCR function...');
+      print('Image path: $imagePath');
+
+      // Create a completer to handle the Promise
+      final completer = Completer<String>();
+
+      // Set up callbacks for the Promise
+      js.context['dartMLKitCallback'] = js.allowInterop((String result) {
+        if (!completer.isCompleted) {
+          print('Google ML Kit OCR result received');
+          print('OCR result length: ${result.length}');
+          completer.complete(result);
+        }
+      });
+
+      js.context['dartMLKitErrorCallback'] = js.allowInterop((dynamic error) {
+        if (!completer.isCompleted) {
+          print('Google ML Kit OCR error: $error');
+          completer.complete('');
+        }
+      });
+
+      // Call the Google ML Kit JavaScript function
+      js.context.callMethod('eval', [
+        '''
+        processImageWithGoogleMLKit("$imagePath")
+          .then(function(result) {
+            if (window.dartMLKitCallback) {
+              window.dartMLKitCallback(result || '');
+            }
+          })
+          .catch(function(error) {
+            if (window.dartMLKitErrorCallback) {
+              window.dartMLKitErrorCallback(error);
+            }
+          });
+      ''',
       ]);
-      return result as String;
+
+      final result = await completer.future;
+
+      // Clean up callbacks
+      js.context['dartMLKitCallback'] = null;
+      js.context['dartMLKitErrorCallback'] = null;
+
+      return result;
     } catch (e) {
-      print('Tesseract extraction failed: $e');
-      if (kIsWeb && imagePath.startsWith('blob:')) {
-        print('Trying web-specific blob handling...');
-      }
+      print('Google ML Kit OCR failed: $e');
       return '';
     }
   }
@@ -244,50 +263,68 @@ class UAEIdOCRService {
     String? issuingPlace;
 
     final lines = ocrText.split('\n');
-    print('OCR Text: $ocrText'); // Debug output
+    print('=== RAW OCR TEXT FROM DART ===');
+    print(ocrText);
+    print('=== END RAW TEXT ===');
+    print('Lines count: ${lines.length}');
+
+    // First pass - extract from the full text using better patterns
+    final fullText = ocrText.toLowerCase();
+    
+    // Extract name from "Name: Mohammad Azhar Hussain" pattern
+    final nameMatch = RegExp(r'name:\s*([a-z\s]+)', caseSensitive: false).firstMatch(ocrText);
+    if (nameMatch != null) {
+      name = nameMatch.group(1)?.trim();
+    }
+    
+    // Extract occupation from "Occupation: Head Of Department" pattern  
+    final occupationMatch = RegExp(r'occupation:\s*([a-z\s]+)', caseSensitive: false).firstMatch(ocrText);
+    if (occupationMatch != null) {
+      occupation = occupationMatch.group(1)?.trim();
+    }
+    
+    // Extract employer from "Employer: Company Name" pattern
+    final employerMatch = RegExp(r'employer:\s*([a-z0-9\s/&-]+)', caseSensitive: false).firstMatch(ocrText);
+    if (employerMatch != null) {
+      employer = employerMatch.group(1)?.trim();
+    }
+    
+    // Extract all dates and categorize them
+    final allDates = RegExp(r'(\d{1,2})/(\d{1,2})/(\d{4})').allMatches(ocrText);
+    final foundDates = <String>[];
+    for (final match in allDates) {
+      final date = match.group(0)!;
+      final year = int.parse(match.group(3)!);
+      foundDates.add(date);
+      
+      // Categorize dates by year ranges
+      if (year >= 1950 && year <= 2010 && dateOfBirth == null) {
+        dateOfBirth = date;
+      } else if (year >= 2020 && year <= 2035 && expiryDate == null) {
+        expiryDate = date;
+      } else if (year >= 2010 && year <= 2025 && issuingDate == null) {
+        issuingDate = date;
+      }
+    }
 
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i].trim();
       final lowerLine = line.toLowerCase();
 
-      // Extract name (usually after "Name:" or on the line after)
-      if (lowerLine.contains('name:') || line.contains('الاسم:')) {
-        name = _extractValueAfterColon(line);
-        // If name is empty, check the next line
-        if ((name == null || name.isEmpty) && i + 1 < lines.length) {
-          name = lines[i + 1].trim();
-        }
+      // Skip name extraction in line-by-line loop since we did it above
+
+      // Extract ID Number - look for 784-XXXX-XXXXXXX-X pattern
+      final idMatch = RegExp(
+        r'784[-\s]*(\d{4})[-\s]*(\d{7})[-\s]*(\d)',
+      ).firstMatch(line);
+      if (idMatch != null) {
+        idNumber =
+            '784-${idMatch.group(1)}-${idMatch.group(2)}-${idMatch.group(3)}';
       }
 
-      // Extract ID Number (format: XXX-XXXX-XXXXXXX-X)
-      final idPatterns = [
-        RegExp(r'\d{3}-\d{4}-\d{7}-\d{1}'),
-        RegExp(r'\d{3}\s+\d{4}\s+\d{7}\s+\d{1}'),
-        RegExp(r'\d{15}'),
-      ];
-
-      for (final pattern in idPatterns) {
-        final idMatch = pattern.firstMatch(line);
-        if (idMatch != null) {
-          String foundId = idMatch.group(0)!;
-          // Format the ID number correctly
-          if (foundId.length == 15) {
-            foundId =
-                '${foundId.substring(0, 3)}-${foundId.substring(3, 7)}-${foundId.substring(7, 14)}-${foundId.substring(14)}';
-          }
-          idNumber = foundId.replaceAll(RegExp(r'\s+'), '-');
-          break;
-        }
-      }
-
-      // Extract Date of Birth
-      if (lowerLine.contains('date of birth') ||
-          lowerLine.contains('birth') ||
-          line.contains('تاريخ الميلاد')) {
+      // Extract Date of Birth - look for "Date of Birth:" pattern
+      if (lowerLine.contains('date of birth:')) {
         dateOfBirth = _extractDateFromLine(line);
-        if (dateOfBirth == null && i + 1 < lines.length) {
-          dateOfBirth = _extractDateFromLine(lines[i + 1]);
-        }
       }
 
       // Extract Nationality
@@ -296,6 +333,20 @@ class UAEIdOCRService {
         if ((nationality == null || nationality.isEmpty) &&
             i + 1 < lines.length) {
           nationality = lines[i + 1].trim();
+        }
+      }
+
+      // Extract nationality from text patterns
+      if (nationality == null) {
+        // Look for nationality patterns in the line
+        final nationalityPattern = RegExp(r'\b([A-Z][a-z]{2,})\b');
+        final matches = nationalityPattern.allMatches(line);
+        for (final match in matches) {
+          final word = match.group(1);
+          if (word != null && word.length > 3) {
+            nationality = word;
+            break;
+          }
         }
       }
 
@@ -339,81 +390,20 @@ class UAEIdOCRService {
         }
       }
 
-      // Extract Card Number (usually 8-9 digits)
-      if (lowerLine.contains('card number') ||
-          line.contains('رقم البطاقة') ||
-          lowerLine.contains('card no')) {
-        cardNumber = _extractValueAfterColon(line);
-        if (cardNumber == null && i + 1 < lines.length) {
-          cardNumber = lines[i + 1].trim();
+      // Extract Card Number - look for "Card Number" pattern
+      if (lowerLine.contains('card number')) {
+        final cardMatch = RegExp(
+          r'card number[\s\/]*(\d{7,8})',
+          caseSensitive: false,
+        ).firstMatch(line);
+        if (cardMatch != null) {
+          cardNumber = cardMatch.group(1);
         }
       }
 
-      // Look for standalone card numbers (8-9 digits)
-      final cardNumberPattern = RegExp(r'\b\d{8,9}\b');
-      final cardMatch = cardNumberPattern.firstMatch(line);
-      if (cardMatch != null && cardNumber == null) {
-        final potentialCardNumber = cardMatch.group(0);
-        // Verify it's not an ID number or date
-        if (potentialCardNumber != null &&
-            !line.contains('-') &&
-            !line.contains('/') &&
-            potentialCardNumber.length >= 8) {
-          cardNumber = potentialCardNumber;
-        }
-      }
+      // Skip occupation extraction in line-by-line loop since we did it above
 
-      // Extract Occupation
-      if (lowerLine.contains('occupation:') ||
-          lowerLine.contains('profession:') ||
-          line.contains('المهنة:')) {
-        occupation = _extractValueAfterColon(line);
-        if (occupation == null && i + 1 < lines.length) {
-          occupation = lines[i + 1].trim();
-        }
-      }
-
-      // Look for common occupation patterns
-      final occupationPatterns = [
-        'head of department',
-        'manager',
-        'engineer',
-        'supervisor',
-        'director',
-        'specialist',
-        'consultant',
-        'officer',
-      ];
-
-      for (final pattern in occupationPatterns) {
-        if (lowerLine.contains(pattern) && occupation == null) {
-          occupation = _extractOccupationFromLine(line, pattern);
-          break;
-        }
-      }
-
-      // Extract Employer
-      if (lowerLine.contains('employer:') ||
-          lowerLine.contains('company:') ||
-          lowerLine.contains('organization:') ||
-          line.contains('صاحب العمل:')) {
-        employer = _extractValueAfterColon(line);
-        if (employer == null && i + 1 < lines.length) {
-          employer = lines[i + 1].trim();
-        }
-      }
-
-      // Look for company patterns (containing "Co", "Company", "Ltd", etc.)
-      if (employer == null &&
-          (lowerLine.contains(' co ') ||
-              lowerLine.contains('company') ||
-              lowerLine.contains('ltd') ||
-              lowerLine.contains('corporation') ||
-              lowerLine.contains('group') ||
-              lowerLine.contains('cement') ||
-              lowerLine.contains('rakez'))) {
-        employer = line.trim();
-      }
+      // Skip employer extraction in line-by-line loop since we did it above
 
       // Extract Issuing Place
       if (lowerLine.contains('issuing place:') ||
@@ -443,22 +433,27 @@ class UAEIdOCRService {
         }
       }
 
-      // Additional date extraction for any missed dates
-      if (dateOfBirth == null || issuingDate == null || expiryDate == null) {
-        final foundDate = _extractDateFromLine(line);
-        if (foundDate != null) {
-          final dateObj = parseDate(foundDate);
-          if (dateObj != null) {
-            final year = dateObj.year;
+      // Extract dates by pattern matching
+      final dateMatches = RegExp(r'(\d{1,2})/(\d{1,2})/(\d{4})').allMatches(line);
+      for (final dateMatch in dateMatches) {
+        final foundDate = dateMatch.group(0)!;
+        final year = int.parse(dateMatch.group(3)!);
+        final day = int.parse(dateMatch.group(1)!);
+        final month = int.parse(dateMatch.group(2)!);
 
-            // Heuristic to assign dates based on year ranges
-            if (year >= 1950 && year <= 2010 && dateOfBirth == null) {
-              dateOfBirth = foundDate;
-            } else if (year >= 2020 && year <= 2030 && issuingDate == null) {
-              issuingDate = foundDate;
-            } else if (year >= 2025 && year <= 2035 && expiryDate == null) {
-              expiryDate = foundDate;
-            }
+        // Birth date: typically 1950-2010
+        if (year >= 1950 && year <= 2010 && dateOfBirth == null) {
+          dateOfBirth = foundDate;
+        }
+        // Expiry date: typically 2020-2035 
+        else if (year >= 2020 && year <= 2035 && expiryDate == null) {
+          expiryDate = foundDate;
+        }
+        // Issue date: typically 2010-2025, and should be before expiry date
+        else if (year >= 2010 && year <= 2025 && issuingDate == null) {
+          // Additional validation: issue date should be reasonable
+          if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+            issuingDate = foundDate;
           }
         }
       }
@@ -466,6 +461,8 @@ class UAEIdOCRService {
 
     // Post-processing cleanup
     name = _cleanName(name);
+    occupation = _cleanOccupation(occupation);
+    employer = _cleanEmployer(employer);
     nationality = _cleanNationality(nationality);
     sex = _cleanSex(sex);
 
@@ -504,22 +501,14 @@ class UAEIdOCRService {
   static String? _cleanNationality(String? nationality) {
     if (nationality == null || nationality.isEmpty) return null;
 
-    // Common nationality mappings
-    final nationalityMap = {
-      'ind': 'India',
-      'india': 'India',
-      'pak': 'Pakistan',
-      'pakistan': 'Pakistan',
-      'ban': 'Bangladesh',
-      'bangladesh': 'Bangladesh',
-      'phil': 'Philippines',
-      'philippines': 'Philippines',
-      'sri': 'Sri Lanka',
-      'lanka': 'Sri Lanka',
-    };
-
-    final cleaned = nationality.toLowerCase().trim();
-    return nationalityMap[cleaned] ?? nationality.trim();
+    // Clean up nationality text
+    nationality = nationality.replaceAll(RegExp(r'[^A-Za-z\s]'), ' ');
+    nationality = nationality.replaceAll(RegExp(r'\s+'), ' ').trim();
+    
+    // Reject if too short
+    if (nationality.length < 3) return null;
+    
+    return _capitalizeWords(nationality);
   }
 
   static String? _cleanSex(String? sex) {
@@ -532,6 +521,32 @@ class UAEIdOCRService {
     return sex.toUpperCase().trim();
   }
 
+  static String? _cleanOccupation(String? occupation) {
+    if (occupation == null || occupation.isEmpty) return null;
+    
+    // Remove OCR artifacts and clean up
+    occupation = occupation.replaceAll(RegExp(r'[^A-Za-z\s]'), ' ');
+    occupation = occupation.replaceAll(RegExp(r'\s+'), ' ').trim();
+    
+    // Reject if too short or contains artifacts
+    if (occupation.length < 3) return null;
+    
+    return _capitalizeWords(occupation);
+  }
+
+  static String? _cleanEmployer(String? employer) {
+    if (employer == null || employer.isEmpty) return null;
+    
+    // Remove OCR artifacts but keep valid company characters
+    employer = employer.replaceAll(RegExp(r'[^A-Za-z0-9\s/&-]'), ' ');
+    employer = employer.replaceAll(RegExp(r'\s+'), ' ').trim();
+    
+    // Reject if too short or contains artifacts
+    if (employer.length < 5) return null;
+    
+    return _capitalizeWords(employer);
+  }
+
   static String? _extractValueAfterColon(String line) {
     final parts = line.split(':');
     if (parts.length > 1) {
@@ -541,10 +556,21 @@ class UAEIdOCRService {
   }
 
   static String? _extractDateFromLine(String line) {
-    // Extract date in DD/MM/YYYY format
-    final datePattern = RegExp(r'\d{2}/\d{2}/\d{4}');
-    final match = datePattern.firstMatch(line);
-    return match?.group(0);
+    // Extract date in various formats
+    final datePatterns = [
+      RegExp(r'\d{2}/\d{2}/\d{4}'), // DD/MM/YYYY
+      RegExp(r'\d{1,2}/\d{1,2}/\d{4}'), // D/M/YYYY or DD/M/YYYY
+      RegExp(r'\d{2}-\d{2}-\d{4}'), // DD-MM-YYYY
+      RegExp(r'\d{4}/\d{2}/\d{2}'), // YYYY/MM/DD
+    ];
+
+    for (final pattern in datePatterns) {
+      final match = pattern.firstMatch(line);
+      if (match != null) {
+        return match.group(0);
+      }
+    }
+    return null;
   }
 
   static String? _extractOccupationFromLine(String line, String pattern) {
@@ -641,6 +667,36 @@ class UAEIdOCRService {
     }
 
     return age;
+  }
+  
+  // Auto-fill form fields with enhanced mapping
+  static Map<String, String> getFormFieldMapping(UAEIdData data) {
+    final mapping = <String, String>{};
+    
+    if (data.name != null) {
+      final nameParts = data.name!.split(' ');
+      if (nameParts.isNotEmpty) {
+        mapping['firstName'] = nameParts.first;
+        mapping['idName'] = data.name!;
+      }
+      if (nameParts.length > 1) {
+        mapping['lastName'] = nameParts.last;
+      }
+      if (nameParts.length > 2) {
+        mapping['middleName'] = nameParts.skip(1).take(nameParts.length - 2).join(' ');
+      }
+    }
+    
+    if (data.idNumber != null) mapping['emiratesId'] = data.idNumber!;
+    if (data.dateOfBirth != null) mapping['dateOfBirth'] = data.dateOfBirth!;
+    if (data.nationality != null) mapping['nationality'] = data.nationality!;
+    if (data.issuingDate != null) mapping['issueDate'] = data.issuingDate!;
+    if (data.expiryDate != null) mapping['expiryDate'] = data.expiryDate!;
+    if (data.occupation != null) mapping['occupation'] = data.occupation!;
+    if (data.employer != null) mapping['employer'] = data.employer!;
+    if (data.issuingPlace != null) mapping['issuingPlace'] = data.issuingPlace!;
+    
+    return mapping;
   }
 }
 

@@ -112,53 +112,36 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
     );
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Colors.white,
       appBar: _buildModernAppBar(),
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: SlideTransition(
           position: _slideAnimation,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.blue.shade50,
-                  Colors.white,
-                  Colors.grey.shade50,
-                ],
-              ),
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isMobile = constraints.maxWidth < 600;
-                final isTablet =
-                    constraints.maxWidth >= 600 && constraints.maxWidth < 1200;
-                final isDesktop = constraints.maxWidth >= 1200;
-                return SingleChildScrollView(
-                  padding: EdgeInsets.all(isMobile ? 16 : (isTablet ? 24 : 32)),
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Column(
-                      children: [
-                        // Header with animation
-                        _buildAnimatedHeader(isMobile, isTablet, isDesktop),
-                        SizedBox(height: isMobile ? 24 : 40),
-                        // Registration type cards
-                        isMobile
-                            ? _buildMobileCards()
-                            : _buildDesktopCards(isTablet, isDesktop),
-                        SizedBox(height: isMobile ? 24 : 40),
-                        // Information section
-                        _buildInformationSection(isMobile),
-                        SizedBox(height: isMobile ? 24 : 40),
-                      ],
-                    ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+              final isTablet = constraints.maxWidth >= 600 && constraints.maxWidth < 1200;
+              final isDesktop = constraints.maxWidth >= 1200;
+              
+              return Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.blue.shade50,
+                      Colors.white,
+                    ],
                   ),
-                );
-              },
-            ),
+                ),
+                child: isMobile 
+                  ? _buildMobileLayout()
+                  : _buildWebLayout(isTablet, isDesktop),
+              );
+            },
           ),
         ),
       ),
@@ -174,15 +157,12 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
       ),
-      leading: Navigator.of(context).canPop() 
-        ? Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: CustomBackButton(
-              animated: false,
-              size: 36,
-            ),
-          )
-        : null,
+      leading: Navigator.of(context).canPop()
+          ? Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CustomBackButton(animated: false, size: 36),
+            )
+          : null,
       title: Text(
         'Registration Type',
         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
@@ -193,6 +173,121 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
           onPressed: () => _showHelpDialog(),
         ),
       ],
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Column(
+          children: [
+            _buildAnimatedHeader(true, false, false),
+            const SizedBox(height: 24),
+            _buildMobileCards(),
+            const SizedBox(height: 24),
+            _buildInformationSection(true),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWebLayout(bool isTablet, bool isDesktop) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      child: Column(
+        children: [
+          // Header Section - Full Width
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: isDesktop ? 80 : 40,
+              vertical: isDesktop ? 60 : 40,
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade700, Colors.blue.shade500],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, child) {
+                    return Transform.translate(
+                      offset: Offset(0, 20 * (1 - value)),
+                      child: Opacity(opacity: value, child: child),
+                    );
+                  },
+                  child: Text(
+                    'Welcome to RAK Registration',
+                    style: TextStyle(
+                      fontSize: isDesktop ? 48 : 36,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, child) {
+                    return Transform.translate(
+                      offset: Offset(0, 15 * (1 - value)),
+                      child: Opacity(opacity: value, child: child),
+                    );
+                  },
+                  child: Text(
+                    'Select your registration type to continue with the onboarding process',
+                    style: TextStyle(
+                      fontSize: isDesktop ? 20 : 18,
+                      color: Colors.white70,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content Section
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                horizontal: isDesktop ? 80 : 40,
+                vertical: isDesktop ? 80 : 60,
+              ),
+              child: Column(
+                children: [
+                  // Registration Cards Section
+                  Expanded(
+                    flex: 2,
+                    child: _buildWebCards(isTablet, isDesktop),
+                  ),
+                  const SizedBox(height: 40),
+                  // Information Section
+                  Expanded(
+                    flex: 1,
+                    child: _buildWebInformationSection(isDesktop),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -295,19 +390,46 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
             isMobile: true,
           ),
         ),
-        const SizedBox(height: 20),
-        // OCR Card - New
-        ScaleTransition(
-          scale: _ocrCardAnimation,
-          child: _ModernRegistrationTypeCard(
-            title: 'OCR',
-            subtitle: 'Read text from image',
-            icon: Icons.document_scanner_rounded,
-            primaryColor: Colors.green, // Different color for OCR card
-            onTap: () {
-              Navigator.pushNamed(context, '/ocr-screen');
-            },
-            isMobile: true,
+      ],
+    );
+  }
+
+  Widget _buildWebCards(bool isTablet, bool isDesktop) {
+    return Row(
+      children: [
+        // Contractor Card
+        Expanded(
+          child: ScaleTransition(
+            scale: _contractorCardAnimation,
+            child: _WebRegistrationCard(
+              title: 'Contractor',
+              subtitle: 'Maintenance Contractor',
+              description: 'Register as a contractor if you run a business that hires painters or provide painting services directly to clients.',
+              icon: Icons.business_rounded,
+              primaryColor: Colors.blue,
+              onTap: () {
+                Navigator.pushNamed(context, '/contractor-registration');
+              },
+              isDesktop: isDesktop,
+            ),
+          ),
+        ),
+        SizedBox(width: isDesktop ? 40 : 24),
+        // Painter Card
+        Expanded(
+          child: ScaleTransition(
+            scale: _painterCardAnimation,
+            child: _WebRegistrationCard(
+              title: 'Painter',
+              subtitle: 'Works under contractor',
+              description: 'Register as a painter if you work under a contractor or as an individual service provider.',
+              icon: Icons.format_paint_rounded,
+              primaryColor: Colors.orange,
+              onTap: () {
+                Navigator.pushNamed(context, '/painter-registration');
+              },
+              isDesktop: isDesktop,
+            ),
           ),
         ),
       ],
@@ -315,9 +437,6 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
   }
 
   Widget _buildDesktopCards(bool isTablet, bool isDesktop) {
-    // Use a Wrap so cards will wrap to the next line instead of overflowing
-    // horizontally. This ensures the OCR card remains visible on narrower
-    // desktop/tablet widths.
     final cardWidth = isTablet ? 240.0 : (isDesktop ? 280.0 : 300.0);
     final spacing = isTablet ? 20.0 : 32.0;
 
@@ -343,7 +462,6 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
               cardWidth: cardWidth,
             ),
           ),
-
           // Painter Card
           ScaleTransition(
             scale: _painterCardAnimation,
@@ -359,20 +477,49 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
               cardWidth: cardWidth,
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          // OCR Card - New
-          ScaleTransition(
-            scale: _ocrCardAnimation,
-            child: _ModernRegistrationTypeCard(
-              title: 'OCR',
-              subtitle: 'Read text from image',
-              icon: Icons.document_scanner_rounded,
-              primaryColor: Colors.green, // Different color for OCR card
-              onTap: () {
-                Navigator.pushNamed(context, '/ocr-screen');
-              },
-              isMobile: false,
-              cardWidth: cardWidth,
+  Widget _buildWebInformationSection(bool isDesktop) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isDesktop ? 40 : 32),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Need Help Choosing?',
+            style: TextStyle(
+              fontSize: isDesktop ? 28 : 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'If you\'re unsure which registration type to select, our support team is here to help.',
+            style: TextStyle(
+              fontSize: isDesktop ? 18 : 16,
+              color: Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _showHelpDialog,
+            icon: const Icon(Icons.help_outline_rounded),
+            label: const Text('Get Help'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              textStyle: TextStyle(fontSize: isDesktop ? 16 : 14),
             ),
           ),
         ],
@@ -421,16 +568,6 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
             title: 'Painter',
             description:
                 'If you work as a painter under a contractor or as an individual service provider.',
-            isMobile: isMobile,
-          ),
-          SizedBox(height: isMobile ? 12 : 16),
-          // Added OCR info item
-          _buildInfoItem(
-            icon: Icons.document_scanner_rounded,
-            iconColor: Colors.green,
-            title: 'OCR',
-            description:
-                'Use OCR to read text from images and convert it to editable text.',
             isMobile: isMobile,
           ),
         ],
@@ -520,6 +657,185 @@ class _RegistrationTypeScreenState extends State<RegistrationTypeScreen>
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WebRegistrationCard extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final String description;
+  final IconData icon;
+  final Color primaryColor;
+  final VoidCallback onTap;
+  final bool isDesktop;
+
+  const _WebRegistrationCard({
+    required this.title,
+    required this.subtitle,
+    required this.description,
+    required this.icon,
+    required this.primaryColor,
+    required this.onTap,
+    required this.isDesktop,
+  });
+
+  @override
+  State<_WebRegistrationCard> createState() => _WebRegistrationCardState();
+}
+
+class _WebRegistrationCardState extends State<_WebRegistrationCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.02).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) {
+        setState(() {
+          _isHovered = true;
+          _animationController.forward();
+        });
+      },
+      onExit: (_) {
+        setState(() {
+          _isHovered = false;
+          _animationController.reverse();
+        });
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _scaleAnimation,
+          builder: (context, child) {
+            return Transform.scale(scale: _scaleAnimation.value, child: child);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            height: widget.isDesktop ? 400 : 350,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.primaryColor.withOpacity(_isHovered ? 0.2 : 0.1),
+                  blurRadius: _isHovered ? 30 : 15,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+              border: Border.all(
+                color: widget.primaryColor.withOpacity(_isHovered ? 0.3 : 0.1),
+                width: _isHovered ? 2 : 1,
+              ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(widget.isDesktop ? 40 : 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: widget.isDesktop ? 100 : 80,
+                    height: widget.isDesktop ? 100 : 80,
+                    decoration: BoxDecoration(
+                      color: widget.primaryColor.withOpacity(_isHovered ? 0.15 : 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      widget.icon,
+                      size: widget.isDesktop ? 50 : 40,
+                      color: widget.primaryColor,
+                    ),
+                  ),
+                  SizedBox(height: widget.isDesktop ? 32 : 24),
+                  Text(
+                    widget.title,
+                    style: TextStyle(
+                      fontSize: widget.isDesktop ? 32 : 28,
+                      fontWeight: FontWeight.bold,
+                      color: widget.primaryColor,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: widget.isDesktop ? 16 : 12),
+                  Text(
+                    widget.subtitle,
+                    style: TextStyle(
+                      fontSize: widget.isDesktop ? 18 : 16,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: widget.isDesktop ? 20 : 16),
+                  Text(
+                    widget.description,
+                    style: TextStyle(
+                      fontSize: widget.isDesktop ? 16 : 14,
+                      color: Colors.grey.shade600,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Spacer(),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(
+                      vertical: widget.isDesktop ? 16 : 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: widget.primaryColor.withOpacity(_isHovered ? 1.0 : 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Register as ${widget.title}',
+                          style: TextStyle(
+                            fontSize: widget.isDesktop ? 16 : 14,
+                            fontWeight: FontWeight.bold,
+                            color: _isHovered ? Colors.white : widget.primaryColor,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: widget.isDesktop ? 20 : 18,
+                          color: _isHovered ? Colors.white : widget.primaryColor,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
