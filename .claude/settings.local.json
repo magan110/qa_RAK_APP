@@ -1,8 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch",
-      "Bash(flutter pub:*)"
+      "Bash(cp:*)",
+      "Bash(flutter analyze:*)"
     ],
     "deny": [],
     "ask": []

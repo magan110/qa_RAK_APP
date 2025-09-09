@@ -253,3 +253,174 @@ function fallbackToTesseract(imagePath, resolve, reject) {
 
 // Keep backward compatibility
 window.processImageWithMLKit = window.processImageWithGoogleMLKit;
+
+// Bank document specific OCR processing
+window.processBankDocumentWithOCR = function(imagePath) {
+  console.log('Bank document OCR function called with:', imagePath);
+  
+  return new Promise(async (resolve, reject) => {
+    try {
+      console.log('=== STARTING BANK DOCUMENT OCR ===');
+      
+      // Use Google ML Kit if available, otherwise fallback to Tesseract
+      if (typeof window.mlkit !== 'undefined') {
+        console.log('Using Google ML Kit for bank document');
+        return processBankDocumentWithGoogleMLKit(imagePath, resolve, reject);
+      } else {
+        console.log('Using Tesseract for bank document');
+        return processBankDocumentWithTesseract(imagePath, resolve, reject);
+      }
+      
+    } catch (error) {
+      console.error('Bank document OCR setup failed:', error);
+      resolve('');
+    }
+  });
+};
+
+// Bank document processing with Google ML Kit
+function processBankDocumentWithGoogleMLKit(imagePath, resolve, reject) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  
+  img.onload = async function() {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      
+      const textRecognizer = new window.mlkit.TextRecognizer();
+      const results = await textRecognizer.recognize(imageData);
+      
+      let extractedText = '';
+      if (results && results.blocks) {
+        for (const block of results.blocks) {
+          if (block.lines) {
+            for (const line of block.lines) {
+              if (line.text) {
+                extractedText += line.text + '\n';
+              }
+            }
+          }
+        }
+      }
+      
+      console.log('=== BANK DOCUMENT ML KIT RAW TEXT ===');
+      console.log(extractedText);
+      console.log('=== END BANK RAW TEXT ===');
+      
+      const cleanText = extractedText
+        .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      resolve(cleanText);
+      
+    } catch (mlkitError) {
+      console.error('Google ML Kit bank document processing failed:', mlkitError);
+      processBankDocumentWithTesseract(imagePath, resolve, reject);
+    }
+  };
+  
+  img.onerror = function() {
+    console.error('Failed to load bank document image for ML Kit');
+    processBankDocumentWithTesseract(imagePath, resolve, reject);
+  };
+  
+  img.src = imagePath;
+}
+
+// Bank document processing with Tesseract
+function processBankDocumentWithTesseract(imagePath, resolve, reject) {
+  console.log('=== FALLBACK TO TESSERACT FOR BANK DOCUMENT ===');
+  
+  if (typeof Tesseract === 'undefined') {
+    console.error('Neither Google ML Kit nor Tesseract available for bank document');
+    resolve('');
+    return;
+  }
+  
+  // Enhanced OCR settings for bank documents
+  Tesseract.recognize(
+    imagePath,
+    'eng',
+    {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          console.log(`Bank Document Tesseract Progress: ${Math.round(m.progress * 100)}%`);
+        }
+      },
+      // Enhanced settings for financial documents
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,:/- ',
+      preserve_interword_spaces: '1'
+    }
+  ).then(({ data: { text } }) => {
+    console.log('=== BANK DOCUMENT TESSERACT TEXT ===');
+    console.log(text);
+    
+    const cleanText = text
+      .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    resolve(cleanText);
+  }).catch(error => {
+    console.error('Tesseract bank document fallback failed:', error);
+    resolve('');
+  });
+}
+
+// Bank document image preprocessing
+window.preprocessBankImageForOCR = function(imagePath) {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = function() {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      ctx.drawImage(img, 0, 0);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Enhanced preprocessing for bank documents
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        
+        // Higher contrast for bank documents
+        const contrast = 2.0;
+        const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+        let enhanced = Math.max(0, Math.min(255, Math.round(factor * (gray - 128) + 128)));
+        
+        // Apply threshold for better text recognition
+        enhanced = enhanced > 127 ? 255 : 0;
+        
+        data[i] = enhanced;
+        data[i + 1] = enhanced;
+        data[i + 2] = enhanced;
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      canvas.toBlob(blob => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const arrayBuffer = reader.result;
+          const uint8Array = new Uint8Array(arrayBuffer);
+          resolve(Array.from(uint8Array));
+        };
+        reader.readAsArrayBuffer(blob);
+      }, 'image/png');
+    };
+    
+    img.onerror = reject;
+    img.src = imagePath;
+  });
+};

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../widgets/custom_back_button.dart';
-import '../widgets/uploaded_files_gallery.dart';
+import 'package:rak_web/core/widgets/custom_back_button.dart';
+import 'package:rak_web/core/widgets/uploaded_files_gallery.dart';
 
 class FileManagerScreen extends StatefulWidget {
   const FileManagerScreen({super.key});

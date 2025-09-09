@@ -254,15 +254,21 @@ window.detectQRCode = function(imageData, width, height) {
   try {
     // Check if jsQR is available
     if (typeof jsQR !== 'undefined') {
+      // Try with different inversion attempts for better detection
       const code = jsQR(imageData, width, height, {
         inversionAttempts: "attemptBoth",
+        greyScaleWeights: {
+          red: 0.299,
+          green: 0.587,
+          blue: 0.114
+        }
       });
       if (code && code.data && code.data.trim().length > 0) {
         console.log('QR Code detected:', code.data);
         return code.data;
       }
     } else {
-      console.warn('jsQR library not loaded');
+      console.warn('jsQR library not loaded - QR code scanning will not work');
     }
     return null;
   } catch (e) {
