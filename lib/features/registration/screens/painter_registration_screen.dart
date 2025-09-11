@@ -645,8 +645,8 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                               'Fujairah',
                             ],
                             value: _emiratesController.text.isEmpty
-                                ? _emiratesController.text
-                                : null,
+                                ? null
+                                : _emiratesController.text,
                             onChanged: (value) {
                               setState(() {
                                 _emiratesController.text = value ?? '';
