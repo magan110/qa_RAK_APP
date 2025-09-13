@@ -18,7 +18,7 @@ const HTTP_PORT = 8080;
 const HTTPS_PORT = 8521;
 const HOSTS = ["10.166.220.182", "10.62.217.182", "192.168.100.127", "10.235.234.182"]; // Bind attempts
 const API_PREFIX = "/api";
-const API_TARGET = "https://127.0.0.1:7173"; // backend (kept via /api/*)
+const API_TARGET = "http://10.4.64.23:8521"; // backend (kept via /api/*)
 
 // === Uploads ===
 const upload = multer({

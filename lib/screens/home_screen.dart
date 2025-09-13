@@ -21,15 +21,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late Animation<Offset> _slideAnimation;
   late Animation<double> _scaleAnimation;
   late Animation<double> _navScaleAnimation;
-
   final AppLogger _logger = AppLogger();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
     _controller = homeController;
     _controller.addListener(_onControllerChanged);
-
     _mainController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
@@ -38,7 +37,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _mainController,
@@ -61,10 +59,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _navScaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _navController, curve: Curves.elasticOut),
     );
-
     _mainController.forward();
     _navController.forward();
-
     _logger.info('HomeScreenRefactored initialized');
   }
 
@@ -90,30 +86,59 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         statusBarBrightness: Brightness.light,
       ),
     );
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWeb = constraints.maxWidth > 800;
         final isTablet =
             constraints.maxWidth > 600 && constraints.maxWidth <= 800;
         final isMobile = constraints.maxWidth <= 600;
+        final isDesktop = constraints.maxWidth > 1200;
 
         return Scaffold(
+          key: _scaffoldKey,
           backgroundColor: const Color(0xFFF3F4F6),
-          appBar: _buildAppBar(),
-          drawer: _buildDrawerMenu(),
-          body: Stack(
-            children: [
-              _buildMainContent(
-                isWeb: isWeb,
-                isTablet: isTablet,
-                isMobile: isMobile,
-              ),
-              _buildBottomNavigation(isWeb: isWeb, isTablet: isTablet),
-            ],
-          ),
+          appBar: isWeb ? null : _buildAppBar(),
+          drawer: isWeb ? null : _buildDrawerMenu(),
+          body: isWeb
+              ? _buildDesktopLayout(isDesktop: isDesktop)
+              : _buildMobileLayout(isTablet: isTablet, isMobile: isMobile),
         );
       },
+    );
+  }
+
+  Widget _buildDesktopLayout({bool isDesktop = false}) {
+    return Row(
+      children: [
+        _buildSidebar(isDesktop: isDesktop),
+        Expanded(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: isDesktop ? 1200 : 1000),
+              child: _buildMainContent(
+                isWeb: true,
+                isTablet: false,
+                isMobile: false,
+                isDesktop: isDesktop,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout({bool isTablet = false, bool isMobile = false}) {
+    return Stack(
+      children: [
+        _buildMainContent(
+          isWeb: false,
+          isTablet: isTablet,
+          isMobile: isMobile,
+          isDesktop: false,
+        ),
+        _buildBottomNavigation(isWeb: false, isTablet: isTablet),
+      ],
     );
   }
 
@@ -218,10 +243,161 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildSidebar({bool isDesktop = false}) {
+    return Container(
+      width: isDesktop ? 280 : 240,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x0F000000),
+            blurRadius: 10,
+            offset: Offset(1, 0),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                bottom: BorderSide(color: Colors.grey, width: 0.5),
+              ),
+            ),
+            child: Center(
+              child: Image.asset(
+                'assets/images/rak_logo.jpg',
+                height: isDesktop ? 120 : 100,
+                width: isDesktop ? 120 : 100,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  Icons.business,
+                  color: Colors.grey,
+                  size: isDesktop ? 120 : 100,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+              children: [
+                _buildDrawerItem(
+                  icon: Icons.dashboard,
+                  title: 'Dashboard',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/dashboard');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.format_paint,
+                  title: 'Painter Registration',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/painter-registration');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.construction,
+                  title: 'Contractor Registration',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/contractor-registration');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.approval,
+                  title: 'Approval Dashboard',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/approval-dashboard');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.storefront,
+                  title: 'Retailer Onboarding',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/retailer-onboarding');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.add_box,
+                  title: 'New Product Entry',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/new-product-entry');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.inventory,
+                  title: 'Material Distribution',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/sample-distribution');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.science,
+                  title: 'Sampling Drive Form',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/sampling-drive-form');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.science,
+                  title: 'Incentive Scheme Form',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/incentive-scheme-form');
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.local_offer,
+                  title: 'Expert Meet Claim',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/expert-meet-claim');
+                  },
+                ),
+                const Divider(height: 32),
+                _buildDrawerItem(
+                  icon: Icons.settings,
+                  title: 'Settings',
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Settings - Coming Soon!')),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.help_outline,
+                  title: 'Help & Support',
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Help & Support - Coming Soon!'),
+                      ),
+                    );
+                  },
+                ),
+                _buildDrawerItem(
+                  icon: Icons.logout,
+                  title: 'Logout',
+                  onTap: () {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/login-password',
+                      (route) => false,
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDrawerMenu() {
     return Drawer(
       backgroundColor: Colors.white,
-      width: MediaQuery.of(context).size.width * 0.75, // Ensure adequate width
+      width: MediaQuery.of(context).size.width * 0.75,
       child: Column(
         children: [
           Container(
@@ -335,13 +511,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Navigator.pushNamed(context, '/incentive-scheme-form');
                   },
                 ),
+                _buildDrawerItem(
+                  icon: Icons.local_offer,
+                  title: 'Expert Meet Claim',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/expert-meet-claim');
+                  },
+                ),
                 const Divider(height: 32),
                 _buildDrawerItem(
                   icon: Icons.settings,
                   title: 'Settings',
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: Navigate to settings screen
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Settings - Coming Soon!')),
                     );
@@ -352,7 +535,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   title: 'Help & Support',
                   onTap: () {
                     Navigator.pop(context);
-                    // TODO: Navigate to help screen
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Help & Support - Coming Soon!'),
@@ -413,6 +595,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     required bool isWeb,
     required bool isTablet,
     required bool isMobile,
+    required bool isDesktop,
   }) {
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -434,9 +617,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 isWeb: isWeb,
                 isTablet: isTablet,
                 isMobile: isMobile,
+                isDesktop: isDesktop,
               ),
-              _buildQRScannerTab(isWeb: isWeb, isTablet: isTablet),
-              _buildProfileTab(isWeb: isWeb, isTablet: isTablet),
+              _buildQRScannerTab(
+                isWeb: isWeb,
+                isTablet: isTablet,
+                isDesktop: isDesktop,
+              ),
+              _buildProfileTab(
+                isWeb: isWeb,
+                isTablet: isTablet,
+                isDesktop: isDesktop,
+              ),
             ],
           ),
         ),
@@ -444,17 +636,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildQRScannerTab({bool isWeb = false, bool isTablet = false}) {
+  Widget _buildQRScannerTab({
+    bool isWeb = false,
+    bool isTablet = false,
+    bool isDesktop = false,
+  }) {
     return Container(
       decoration: const BoxDecoration(color: Color(0xFFF3F4F6)),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(isDesktop ? 40 : 20),
           child: Column(
             children: [
-              _buildScannerHeader(),
-              const SizedBox(height: 30),
-              Expanded(child: _buildScannerOptions()),
+              _buildScannerHeader(isDesktop: isDesktop),
+              SizedBox(height: isDesktop ? 40 : 30),
+              Expanded(child: _buildScannerOptions(isDesktop: isDesktop)),
             ],
           ),
         ),
@@ -462,10 +658,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildScannerHeader() {
+  Widget _buildScannerHeader({bool isDesktop = false}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isDesktop ? 48 : 32),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
@@ -484,8 +680,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       child: Column(
         children: [
           Container(
-            width: 100,
-            height: 100,
+            width: isDesktop ? 120 : 100,
+            height: isDesktop ? 120 : 100,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
@@ -497,33 +693,67 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ],
             ),
-            child: const Icon(
+            child: Icon(
               Icons.qr_code_scanner,
-              size: 50,
+              size: isDesktop ? 60 : 50,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 24),
-          const Text(
+          SizedBox(height: isDesktop ? 32 : 24),
+          Text(
             'QR Scanner',
             style: TextStyle(
-              fontSize: 32,
+              fontSize: isDesktop ? 40 : 32,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 12),
-          const Text(
+          SizedBox(height: isDesktop ? 16 : 12),
+          Text(
             'Scan or enter QR codes for quick processing',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
+            style: TextStyle(
+              fontSize: isDesktop ? 20 : 16,
+              color: Colors.white70,
+              height: 1.5,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildScannerOptions() {
+  Widget _buildScannerOptions({bool isDesktop = false}) {
+    if (isDesktop) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: _buildScannerCard(
+                  'Camera Scan',
+                  Icons.camera_alt,
+                  const Color(0xFF10B981),
+                  () => Navigator.pushNamed(context, '/camera-scanner'),
+                ),
+              ),
+              const SizedBox(width: 40),
+              Expanded(
+                child: _buildScannerCard(
+                  'Manual Entry',
+                  Icons.keyboard,
+                  const Color(0xFF3B82F6),
+                  () => Navigator.pushNamed(context, '/qr-input'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return GridView.count(
       crossAxisCount: 2,
       crossAxisSpacing: 20,
@@ -606,130 +836,151 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildProfileTab({bool isWeb = false, bool isTablet = false}) {
+  Widget _buildProfileTab({
+    bool isWeb = false,
+    bool isTablet = false,
+    bool isDesktop = false,
+  }) {
     return SingleChildScrollView(
       padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
+        left: isDesktop ? 60 : 20,
+        right: isDesktop ? 60 : 20,
+        top: isDesktop ? 40 : 20,
         bottom: isWeb ? 20 : 120,
       ),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: isDesktop ? 800 : double.infinity,
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(isDesktop ? 48 : 32),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x331E3A8A),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: isDesktop ? 80 : 60,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        Icons.person,
+                        size: isDesktop ? 80 : 60,
+                        color: const Color(0xFF1E3A8A),
+                      ),
+                    ),
+                    SizedBox(height: isDesktop ? 32 : 24),
+                    Text(
+                      'Magan',
+                      style: TextStyle(
+                        fontSize: isDesktop ? 36 : 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: isDesktop ? 12 : 8),
+                    Text(
+                      'Gold Member • Partner ID: RAK2024',
+                      style: TextStyle(
+                        fontSize: isDesktop ? 20 : 16,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    SizedBox(height: isDesktop ? 12 : 8),
+                    Text(
+                      'magan@rakwhitecement.ae',
+                      style: TextStyle(
+                        fontSize: isDesktop ? 20 : 16,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x331E3A8A),
-                  blurRadius: 20,
-                  offset: Offset(0, 10),
+              SizedBox(height: isDesktop ? 48 : 32),
+              _buildProfileSection('Account Settings', [
+                _buildProfileOption(
+                  'Personal Information',
+                  Icons.person,
+                  const Color(0xFF3B82F6),
+                  () {},
                 ),
-              ],
-            ),
-            child: const Column(
-              children: [
-                CircleAvatar(
-                  radius: 60,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person, size: 60, color: Color(0xFF1E3A8A)),
+                const SizedBox(height: 16),
+                _buildProfileOption(
+                  'Security',
+                  Icons.security,
+                  const Color(0xFF10B981),
+                  () {},
                 ),
-                SizedBox(height: 24),
-                Text(
-                  'Magan',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                const SizedBox(height: 16),
+                _buildProfileOption(
+                  'Notifications',
+                  Icons.notifications,
+                  const Color(0xFFF59E0B),
+                  () {},
+                ),
+              ]),
+              SizedBox(height: isDesktop ? 48 : 32),
+              _buildProfileSection('Support', [
+                _buildProfileOption(
+                  'Help Center',
+                  Icons.help,
+                  const Color(0xFF60A5FA),
+                  () {},
+                ),
+                const SizedBox(height: 16),
+                _buildProfileOption(
+                  'Contact Us',
+                  Icons.contact_support,
+                  const Color(0xFF1E3A8A),
+                  () {},
+                ),
+                const SizedBox(height: 16),
+                _buildProfileOption(
+                  'About',
+                  Icons.info,
+                  const Color(0xFF6B7280),
+                  () {},
+                ),
+              ]),
+              SizedBox(height: isDesktop ? 48 : 32),
+              SizedBox(
+                width: double.infinity,
+                height: isDesktop ? 64 : 56,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login-password',
+                    (route) => false,
+                  ),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEF4444),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
                   ),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Gold Member • Partner ID: RAK2024',
-                  style: TextStyle(fontSize: 16, color: Colors.white70),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'magan@rakwhitecement.ae',
-                  style: TextStyle(fontSize: 16, color: Colors.white70),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-          _buildProfileSection('Account Settings', [
-            _buildProfileOption(
-              'Personal Information',
-              Icons.person,
-              const Color(0xFF3B82F6),
-              () {},
-            ),
-            const SizedBox(height: 16),
-            _buildProfileOption(
-              'Security',
-              Icons.security,
-              const Color(0xFF10B981),
-              () {},
-            ),
-            const SizedBox(height: 16),
-            _buildProfileOption(
-              'Notifications',
-              Icons.notifications,
-              const Color(0xFFF59E0B),
-              () {},
-            ),
-          ]),
-          const SizedBox(height: 32),
-          _buildProfileSection('Support', [
-            _buildProfileOption(
-              'Help Center',
-              Icons.help,
-              const Color(0xFF60A5FA),
-              () {},
-            ),
-            const SizedBox(height: 16),
-            _buildProfileOption(
-              'Contact Us',
-              Icons.contact_support,
-              const Color(0xFF1E3A8A),
-              () {},
-            ),
-            const SizedBox(height: 16),
-            _buildProfileOption(
-              'About',
-              Icons.info,
-              const Color(0xFF6B7280),
-              () {},
-            ),
-          ]),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton.icon(
-              onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/login-password',
-                (route) => false,
               ),
-              icon: const Icon(Icons.logout),
-              label: const Text('Logout'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEF4444),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 0,
-              ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -921,7 +1172,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
       );
     }
-
     return Positioned(
       bottom: 4,
       left: 20,
@@ -1069,7 +1319,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final fontSize = isTablet
         ? (12.0 + (2.0 * (isSelected ? 1 : 0)))
         : (10.0 + (2.0 * (isSelected ? 1 : 0)));
-
     return Expanded(
       child: GestureDetector(
         onTapDown: (_) => HapticFeedback.lightImpact(),

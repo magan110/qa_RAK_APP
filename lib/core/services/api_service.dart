@@ -13,7 +13,7 @@ class ApiService {
 
   // Base URL configuration with fallback options
   static String get baseUrl {
-    return 'http://10.166.220.122';
+    return 'http://10.4.64.23:8521';
   }
 
   static List<String> get fallbackUrls => [
@@ -53,80 +53,108 @@ class ApiService {
 
   // Generic HTTP methods
   static Future<Map<String, dynamic>> _makeRequest({
-    required String method,
-    required String endpoint,
-    Map<String, dynamic>? body,
-    Map<String, String>? headers,
-    Duration? timeout,
-  }) async {
-    try {
-      _logger.info('Making $method request to $endpoint');
+  required String method,
+  required String endpoint,
+  Map<String, dynamic>? body,
+  Map<String, String>? headers,
+  Duration? timeout,
+}) async {
+  try {
+    _logger.info('Making $method request to $endpoint');
 
-      final uri = Uri.parse('$baseUrl$endpoint');
-      final requestHeaders = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...?headers,
+    final uri = Uri.parse('$baseUrl$endpoint');
+    final requestHeaders = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...?headers,
+    };
+
+    http.Response response;
+    final timeoutDuration = timeout ?? _defaultTimeout;
+
+    switch (method.toUpperCase()) {
+      case 'GET':
+        response = await http.get(uri, headers: requestHeaders).timeout(timeoutDuration);
+        break;
+      case 'POST':
+        response = await http
+            .post(uri, headers: requestHeaders, body: jsonEncode(body ?? <String, dynamic>{}))
+            .timeout(timeoutDuration);
+        break;
+      case 'PUT':
+        response = await http
+            .put(uri, headers: requestHeaders, body: jsonEncode(body ?? <String, dynamic>{}))
+            .timeout(timeoutDuration);
+        break;
+      case 'DELETE':
+        response = await http.delete(uri, headers: requestHeaders).timeout(timeoutDuration);
+        break;
+      default:
+        throw Exception('Unsupported HTTP method: $method');
+    }
+
+    _logger.debug('Response ${response.statusCode} for $method $endpoint');
+    _logger.debug('Response body: ${response.body}');
+
+    final parsed = _safeJson(response.body);
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return {
+        'success': true,
+        'data': parsed,
+        'statusCode': response.statusCode,
       };
+    } else {
+      final msg = _extractProblemMessage(parsed, fallback: response.reasonPhrase ?? 'Request failed');
+      return {
+        'success': false,
+        'error': msg,
+        'statusCode': response.statusCode,
+        'data': parsed, // keep full payload for debugging if needed
+      };
+    }
+  } catch (e) {
+    _logger.error('Request failed', e);
+    return {'success': false, 'error': 'Network error: $e', 'statusCode': 0};
+  }
+}
 
-      http.Response response;
-      final timeoutDuration = timeout ?? _defaultTimeout;
+/// Turns ASP.NET ProblemDetails (title/detail/errors) into a readable string.
+static String _extractProblemMessage(Map<String, dynamic> j, {String fallback = 'Request failed'}) {
+  // Prefer ProblemDetails shape
+  final title = j['title']?.toString();
+  final detail = j['detail']?.toString();
+  String combined = (title ?? '').trim();
+  if (detail != null && detail.isNotEmpty) {
+    combined = combined.isEmpty ? detail : '$combined — $detail';
+  }
 
-      switch (method.toUpperCase()) {
-        case 'GET':
-          response = await http
-              .get(uri, headers: requestHeaders)
-              .timeout(timeoutDuration);
-          break;
-        case 'POST':
-          response = await http
-              .post(
-                uri,
-                headers: requestHeaders,
-                body: body != null ? jsonEncode(body) : null,
-              )
-              .timeout(timeoutDuration);
-          break;
-        case 'PUT':
-          response = await http
-              .put(
-                uri,
-                headers: requestHeaders,
-                body: body != null ? jsonEncode(body) : null,
-              )
-              .timeout(timeoutDuration);
-          break;
-        case 'DELETE':
-          response = await http
-              .delete(uri, headers: requestHeaders)
-              .timeout(timeoutDuration);
-          break;
-        default:
-          throw Exception('Unsupported HTTP method: $method');
+  // Flatten validation "errors"
+  if (j['errors'] is Map) {
+    final errs = j['errors'] as Map;
+    final parts = <String>[];
+    errs.forEach((k, v) {
+      if (v is List && v.isNotEmpty) {
+        parts.add('$k: ${v.join("; ")}');
+      } else if (v != null) {
+        parts.add('$k: $v');
       }
-
-      _logger.debug('Response status: ${response.statusCode}');
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final data = _safeJson(response.body);
-        return {
-          'success': true,
-          'data': data,
-          'statusCode': response.statusCode,
-        };
-      } else {
-        final error = _safeJson(response.body);
-        return {
-          'success': false,
-          'error': error['message'] ?? 'Request failed',
-          'statusCode': response.statusCode,
-        };
-      }
-    } catch (e) {
-      _logger.error('Request failed', e);
-      return {'success': false, 'error': 'Network error: $e', 'statusCode': 0};
+    });
+    if (parts.isNotEmpty) {
+      final flat = parts.join(' | ');
+      combined = combined.isEmpty ? flat : '$combined | $flat';
     }
   }
+
+  if (combined.isNotEmpty) return combined;
+
+  // Fallbacks
+  if (j['message'] != null) return j['message'].toString();
+  if (j['error'] != null) return j['error'].toString();
+  if (j['raw'] is String && (j['raw'] as String).isNotEmpty) return j['raw'] as String;
+  return fallback;
+}
+
 
   // Authentication APIs
   static Future<Map<String, dynamic>> login(

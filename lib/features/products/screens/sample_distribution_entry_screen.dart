@@ -325,7 +325,7 @@ class _SampleDistributEntryState extends State<SampleDistributEntry>
             )
           : null,
       title: Text(
-        'Retailer Onboarding Form',
+        'Material Distribution',
         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
       ),
       actions: [

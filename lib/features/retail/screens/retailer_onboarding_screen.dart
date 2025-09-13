@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
 import 'dart:js_interop';
+import '../../../core/models/retailer_onboarding_models.dart';
+import '../../../core/services/retailer_onboarding_service.dart';
 
 @JS()
 @staticInterop
@@ -35,10 +36,10 @@ class RetailerFormPage extends StatefulWidget {
   const RetailerFormPage({super.key});
 
   @override
-  _RetailerFormPageState createState() => _RetailerFormPageState();
+  RetailerFormPageState createState() => RetailerFormPageState();
 }
 
-class _RetailerFormPageState extends State<RetailerFormPage>
+class RetailerFormPageState extends State<RetailerFormPage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final bool _isVATRequired = true;
@@ -198,27 +199,124 @@ class _RetailerFormPageState extends State<RetailerFormPage>
 
   Future<void> _saveData() async {
     setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(seconds: 2)); // simulate API
+    
+    try {
+      // Create request object from form data - ensure non-empty strings or null
+      final request = RetailerOnboardingRequest(
+        firmName: _cleanString(firmNameController.text),
+        taxRegistrationNumber: _cleanString(taxRegNumberController.text),
+        registeredAddress: _cleanString(registeredAddressController.text),
+        effectiveRegistrationDate: _cleanString(effectiveDateController.text),
+        licenseNumber: _cleanString(licenseNumberController.text),
+        issuingAuthority: _cleanString(issuingAuthorityController.text),
+        establishmentDate: _cleanString(establishmentDateController.text),
+        expiryDate: _cleanString(expiryDateController.text),
+        tradeName: _cleanString(tradeNameController.text),
+        responsiblePerson: _cleanString(responsiblePersonController.text),
+        accountHolderName: _cleanString(accountNameController.text),
+        ibanNumber: _cleanString(ibanController.text),
+        bankName: _cleanString(bankNameController.text),
+        branchName: _cleanString(branchNameController.text),
+        branchAddress: _cleanString(branchAddressController.text),
+        latitude: _cleanString(latitudeController.text),
+        longitude: _cleanString(longitudeController.text),
+      );
+
+      print('DEBUG: About to submit request with data: ${request.toJson()}');
+
+      // Submit to API
+      print('DEBUG: Calling RetailerOnboardingService.registerRetailer...');
+      final response = await RetailerOnboardingService.registerRetailer(request);
+      print('DEBUG: Got response: success=${response.success}, message=${response.message}');
+      
+      if (response.success) {
+        // Save to local storage as backup
+        await _saveToLocalStorage();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Registration Successful!\nRetailer Code: ${response.retailerCode ?? 'N/A'}',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+          
+          // Navigate to success or show retailer code
+          _showSuccessDialog(response.retailerCode);
+        }
+      } else {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Registration Failed: ${response.error ?? response.message}',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Network Error: $e'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _saveToLocalStorage() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('firmName', firmNameController.text);
     await prefs.setString('taxRegNumber', taxRegNumberController.text);
-    await prefs.setString(
-      'registeredAddress',
-      registeredAddressController.text,
-    );
+    await prefs.setString('registeredAddress', registeredAddressController.text);
     await prefs.setString('effectiveDate', effectiveDateController.text);
     await prefs.setString('licenseNumber', licenseNumberController.text);
     await prefs.setString('issuingAuthority', issuingAuthorityController.text);
-    await prefs.setString(
-      'establishmentDate',
-      establishmentDateController.text,
-    );
+    await prefs.setString('establishmentDate', establishmentDateController.text);
     await prefs.setString('expiryDate', expiryDateController.text);
     await prefs.setString('tradeName', tradeNameController.text);
-    await prefs.setString(
-      'responsiblePerson',
-      responsiblePersonController.text,
-    );
+    await prefs.setString('responsiblePerson', responsiblePersonController.text);
     await prefs.setString('accountName', accountNameController.text);
     await prefs.setString('iban', ibanController.text);
     await prefs.setString('bankName', bankNameController.text);
@@ -226,26 +324,79 @@ class _RetailerFormPageState extends State<RetailerFormPage>
     await prefs.setString('branchAddress', branchAddressController.text);
     await prefs.setString('latitude', latitudeController.text);
     await prefs.setString('longitude', longitudeController.text);
+  }
 
-    setState(() => _isSubmitting = false);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
+  void _showSuccessDialog(String? retailerCode) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Expanded(child: Text('Data Saved Successfully')),
+              const Icon(
+                Icons.check_circle,
+                size: 64,
+                color: Colors.green,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Registration Successful!',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              if (retailerCode != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Your Retailer Code:',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 4),
+                      SelectableText(
+                        retailerCode,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              const Text(
+                'Your registration has been submitted successfully. Please save your retailer code for future reference.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    // You can navigate to a different screen here if needed
+                  },
+                  child: const Text('Continue'),
+                ),
+              ),
             ],
           ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
         ),
-      );
-
-      Navigator.pushNamed(context, '/success');
-    }
+      ),
+    );
   }
 
   String? _validateTaxRegNumber(String? value) {
@@ -278,6 +429,11 @@ class _RetailerFormPageState extends State<RetailerFormPage>
   String? _validateRequired(String? value, String fieldName) {
     if (value == null || value.isEmpty) return 'Please enter $fieldName';
     return null;
+  }
+
+  String? _cleanString(String value) {
+    final cleaned = value.trim();
+    return cleaned.isEmpty ? null : cleaned;
   }
 
   PreferredSizeWidget _buildModernAppBar() {

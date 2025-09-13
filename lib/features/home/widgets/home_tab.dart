@@ -10,6 +10,7 @@ class HomeTab extends StatelessWidget {
   final bool isWeb;
   final bool isTablet;
   final bool isMobile;
+  final bool isDesktop;
 
   const HomeTab({
     super.key,
@@ -17,48 +18,72 @@ class HomeTab extends StatelessWidget {
     required this.isWeb,
     required this.isTablet,
     required this.isMobile,
+    required this.isDesktop,
   });
 
   @override
   Widget build(BuildContext context) {
-    final horizontalPadding = isWeb ? 32.0 : (isTablet ? 24.0 : 16.0);
-    final verticalSpacing = isWeb ? 32.0 : (isTablet ? 28.0 : 24.0);
-    final bottomPadding = isWeb ? 40.0 : (isTablet ? 120.0 : 100.0);
+    final horizontalPadding = isDesktop
+        ? 60.0
+        : (isWeb ? 40.0 : (isTablet ? 24.0 : 16.0));
+    final verticalSpacing = isDesktop
+        ? 48.0
+        : (isWeb ? 40.0 : (isTablet ? 28.0 : 24.0));
+    final topPadding = isDesktop ? 40.0 : (isWeb ? 32.0 : 16.0);
+    final bottomPadding = isDesktop
+        ? 80.0
+        : (isWeb ? 60.0 : (isTablet ? 120.0 : 100.0));
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(
-        horizontal: horizontalPadding,
-        vertical: 16,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildPremiumHeader(),
-          SizedBox(height: verticalSpacing),
-          _buildBannerCarousel(),
-          SizedBox(height: verticalSpacing),
-          _buildBusinessMetrics(),
-          SizedBox(height: verticalSpacing),
-          _buildQuickActionsGrid(),
-          SizedBox(height: verticalSpacing),
-          _buildLoyaltyProgramCard(),
-          SizedBox(height: verticalSpacing),
-          _buildPromotionalBanner(),
-          SizedBox(height: verticalSpacing),
-          _buildRecentActivity(),
-          SizedBox(height: verticalSpacing),
-          _buildBusinessInsights(),
-          SizedBox(height: bottomPadding),
-        ],
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: isDesktop ? 1200 : (isWeb ? 1000 : double.infinity),
+        ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            left: horizontalPadding,
+            right: horizontalPadding,
+            top: topPadding,
+            bottom: bottomPadding,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPremiumHeader(),
+              SizedBox(height: verticalSpacing),
+              _buildBannerCarousel(),
+              SizedBox(height: verticalSpacing),
+              _buildBusinessMetrics(),
+              SizedBox(height: verticalSpacing),
+              _buildQuickActionsGrid(),
+              SizedBox(height: verticalSpacing),
+              _buildLoyaltyProgramCard(),
+              SizedBox(height: verticalSpacing),
+              _buildPromotionalBanner(),
+              SizedBox(height: verticalSpacing),
+              _buildRecentActivity(),
+              SizedBox(height: verticalSpacing),
+              _buildBusinessInsights(),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildPremiumHeader() {
-    final padding = isWeb ? 32.0 : (isTablet ? 28.0 : 24.0);
-    final titleFontSize = isWeb ? 36.0 : (isTablet ? 32.0 : 28.0);
-    final subtitleFontSize = isWeb ? 18.0 : (isTablet ? 17.0 : 16.0);
-    final logoSize = isWeb ? 120.0 : (isTablet ? 105.0 : 90.0);
+    final padding = isDesktop
+        ? 40.0
+        : (isWeb ? 32.0 : (isTablet ? 28.0 : 24.0));
+    final titleFontSize = isDesktop
+        ? 42.0
+        : (isWeb ? 36.0 : (isTablet ? 32.0 : 28.0));
+    final subtitleFontSize = isDesktop
+        ? 20.0
+        : (isWeb ? 18.0 : (isTablet ? 17.0 : 16.0));
+    final logoSize = isDesktop
+        ? 140.0
+        : (isWeb ? 120.0 : (isTablet ? 105.0 : 90.0));
 
     return Container(
       width: double.infinity,
@@ -89,8 +114,8 @@ class HomeTab extends StatelessWidget {
                   children: [
                     Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: isWeb ? 12 : 8,
-                        vertical: isWeb ? 6 : 4,
+                        horizontal: isDesktop ? 16 : (isWeb ? 12 : 8),
+                        vertical: isDesktop ? 8 : (isWeb ? 6 : 4),
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
@@ -99,13 +124,13 @@ class HomeTab extends StatelessWidget {
                       child: const Text(
                         'Welcome Back!',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
                       ),
                     ),
-                    SizedBox(height: isWeb ? 20 : 16),
+                    SizedBox(height: isDesktop ? 24 : (isWeb ? 20 : 16)),
                     Text(
                       'Welcome',
                       style: TextStyle(
@@ -115,7 +140,7 @@ class HomeTab extends StatelessWidget {
                         height: 1.2,
                       ),
                     ),
-                    SizedBox(height: isWeb ? 12 : 8),
+                    SizedBox(height: isDesktop ? 16 : (isWeb ? 12 : 8)),
                     Text(
                       'RAK White Cement & Construction Materials',
                       style: TextStyle(
@@ -127,7 +152,7 @@ class HomeTab extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(width: isWeb ? 32 : 20),
+              SizedBox(width: isDesktop ? 40 : (isWeb ? 32 : 20)),
               Container(
                 width: logoSize,
                 height: logoSize,
@@ -137,7 +162,7 @@ class HomeTab extends StatelessWidget {
                   border: Border.all(color: Colors.white.withOpacity(0.2)),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.all(isWeb ? 16 : 12),
+                  padding: EdgeInsets.all(isDesktop ? 20 : (isWeb ? 16 : 12)),
                   child: Image.asset("assets/images/rak_logo.jpg"),
                 ),
               ),
@@ -178,8 +203,14 @@ class HomeTab extends StatelessWidget {
   }
 
   Widget _buildBusinessMetrics() {
-    final titleFontSize = isWeb ? 24.0 : (isTablet ? 22.0 : 20.0);
-    final crossAxisCount = isWeb ? 4 : 2;
+    final titleFontSize = isDesktop
+        ? 28.0
+        : (isWeb ? 24.0 : (isTablet ? 22.0 : 20.0));
+    final crossAxisCount = isDesktop ? 4 : (isWeb ? 3 : 2);
+    final spacing = isDesktop ? 24.0 : (isWeb ? 20.0 : 16.0);
+    final aspectRatio = isDesktop
+        ? 1.1
+        : (isWeb ? 1.2 : (isTablet ? 1.25 : 1.3));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,15 +233,15 @@ class HomeTab extends StatelessWidget {
                   Text(
                     'View All',
                     style: TextStyle(
-                      fontSize: isWeb ? 16 : 14,
+                      fontSize: isDesktop ? 18 : (isWeb ? 16 : 14),
                       color: const Color(0xFF3B82F6),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  SizedBox(width: isWeb ? 6 : 4),
+                  SizedBox(width: isDesktop ? 8 : (isWeb ? 6 : 4)),
                   Icon(
                     Icons.arrow_forward_ios,
-                    size: isWeb ? 16 : 14,
+                    size: isDesktop ? 18 : (isWeb ? 16 : 14),
                     color: const Color(0xFF3B82F6),
                   ),
                 ],
@@ -218,67 +249,145 @@ class HomeTab extends StatelessWidget {
             ),
           ],
         ),
-        SizedBox(height: isWeb ? 20 : 16),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 16.0,
-          mainAxisSpacing: 16.0,
-          childAspectRatio: isWeb ? 1.2 : (isTablet ? 1.25 : 1.3),
-          children: [
-            OptimizedMetricCard(
-              title: 'Total Scans',
-              value: controller.businessMetrics?.totalScans.toString() ?? '0',
-              change: '+12.5%',
-              color: const Color(0xFF10B981),
-              icon: Icons.qr_code_scanner,
-              onTap: () {},
-              isWeb: isWeb,
-              isTablet: isTablet,
-            ),
-            OptimizedMetricCard(
-              title: 'Redeemed Points',
-              value:
-                  controller.businessMetrics?.redeemedPoints.toString() ?? '0',
-              change: '+8.2%',
-              color: const Color(0xFF60A5FA),
-              icon: Icons.redeem,
-              onTap: () {},
-              isWeb: isWeb,
-              isTablet: isTablet,
-            ),
-            OptimizedMetricCard(
-              title: 'Active Campaigns',
-              value:
-                  controller.businessMetrics?.activeCampaigns.toString() ?? '0',
-              change: '+2',
-              color: const Color(0xFFF59E0B),
-              icon: Icons.campaign,
-              onTap: () {},
-              isWeb: isWeb,
-              isTablet: isTablet,
-            ),
-            OptimizedMetricCard(
-              title: 'Monthly Target',
-              value:
-                  '${controller.businessMetrics?.monthlyTargetProgress.toString() ?? '0'}%',
-              change: '+15%',
-              color: const Color(0xFF1E3A8A),
-              icon: Icons.trending_up,
-              onTap: () {},
-              isWeb: isWeb,
-              isTablet: isTablet,
-            ),
-          ],
-        ),
+        SizedBox(height: isDesktop ? 28 : (isWeb ? 24 : 16)),
+        (isDesktop || isWeb)
+            ? Row(
+                children: [
+                  if (isDesktop)
+                    Expanded(
+                      child: OptimizedMetricCard(
+                        title: 'Total Scans',
+                        value:
+                            controller.businessMetrics?.totalScans.toString() ??
+                            '0',
+                        change: '+12.5%',
+                        color: const Color(0xFF10B981),
+                        icon: Icons.qr_code_scanner,
+                        onTap: () {},
+                        isWeb: isWeb,
+                        isTablet: isTablet,
+                      ),
+                    ),
+                  if (isDesktop) SizedBox(width: spacing),
+                  if (isWeb || isDesktop)
+                    Expanded(
+                      child: OptimizedMetricCard(
+                        title: 'Redeemed Points',
+                        value:
+                            controller.businessMetrics?.redeemedPoints
+                                .toString() ??
+                            '0',
+                        change: '+8.2%',
+                        color: const Color(0xFF60A5FA),
+                        icon: Icons.redeem,
+                        onTap: () {},
+                        isWeb: isWeb,
+                        isTablet: isTablet,
+                      ),
+                    ),
+                  if (isWeb || isDesktop) SizedBox(width: spacing),
+                  if (isWeb || isDesktop)
+                    Expanded(
+                      child: OptimizedMetricCard(
+                        title: 'Active Campaigns',
+                        value:
+                            controller.businessMetrics?.activeCampaigns
+                                .toString() ??
+                            '0',
+                        change: '+2',
+                        color: const Color(0xFFF59E0B),
+                        icon: Icons.campaign,
+                        onTap: () {},
+                        isWeb: isWeb,
+                        isTablet: isTablet,
+                      ),
+                    ),
+                  if (isDesktop) SizedBox(width: spacing),
+                  if (isDesktop)
+                    Expanded(
+                      child: OptimizedMetricCard(
+                        title: 'Monthly Target',
+                        value:
+                            '${controller.businessMetrics?.monthlyTargetProgress.toString() ?? '0'}%',
+                        change: '+15%',
+                        color: const Color(0xFF1E3A8A),
+                        icon: Icons.trending_up,
+                        onTap: () {},
+                        isWeb: isWeb,
+                        isTablet: isTablet,
+                      ),
+                    ),
+                ],
+              )
+            : GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: spacing,
+                mainAxisSpacing: spacing,
+                childAspectRatio: aspectRatio,
+                children: [
+                  OptimizedMetricCard(
+                    title: 'Total Scans',
+                    value:
+                        controller.businessMetrics?.totalScans.toString() ??
+                        '0',
+                    change: '+12.5%',
+                    color: const Color(0xFF10B981),
+                    icon: Icons.qr_code_scanner,
+                    onTap: () {},
+                    isWeb: isWeb,
+                    isTablet: isTablet,
+                  ),
+                  OptimizedMetricCard(
+                    title: 'Redeemed Points',
+                    value:
+                        controller.businessMetrics?.redeemedPoints.toString() ??
+                        '0',
+                    change: '+8.2%',
+                    color: const Color(0xFF60A5FA),
+                    icon: Icons.redeem,
+                    onTap: () {},
+                    isWeb: isWeb,
+                    isTablet: isTablet,
+                  ),
+                  OptimizedMetricCard(
+                    title: 'Active Campaigns',
+                    value:
+                        controller.businessMetrics?.activeCampaigns
+                            .toString() ??
+                        '0',
+                    change: '+2',
+                    color: const Color(0xFFF59E0B),
+                    icon: Icons.campaign,
+                    onTap: () {},
+                    isWeb: isWeb,
+                    isTablet: isTablet,
+                  ),
+                  if (!isWeb)
+                    OptimizedMetricCard(
+                      title: 'Monthly Target',
+                      value:
+                          '${controller.businessMetrics?.monthlyTargetProgress.toString() ?? '0'}%',
+                      change: '+15%',
+                      color: const Color(0xFF1E3A8A),
+                      icon: Icons.trending_up,
+                      onTap: () {},
+                      isWeb: isWeb,
+                      isTablet: isTablet,
+                    ),
+                ],
+              ),
       ],
     );
   }
 
   Widget _buildQuickActionsGrid() {
-    final titleFontSize = isWeb ? 24.0 : (isTablet ? 22.0 : 20.0);
-    final crossAxisCount = isWeb ? 2 : 4;
+    final titleFontSize = isDesktop
+        ? 28.0
+        : (isWeb ? 24.0 : (isTablet ? 22.0 : 20.0));
+    final spacing = isDesktop ? 24.0 : (isWeb ? 20.0 : 12.0);
+    final crossAxisCount = isDesktop ? 4 : (isWeb ? 4 : 2);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,41 +400,83 @@ class HomeTab extends StatelessWidget {
             color: const Color(0xFF1F2937),
           ),
         ),
-        SizedBox(height: isWeb ? 20 : 16),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 12.0,
-          mainAxisSpacing: 12.0,
-          childAspectRatio: isWeb ? 1.2 : 1.0,
-          children: [
-            _buildQuickActionCard(
-              'Scan QR',
-              Icons.qr_code_scanner,
-              const Color(0xFF3B82F6),
-              () => controller.trackInteraction('scan_qr_tapped'),
-            ),
-            _buildQuickActionCard(
-              'Products',
-              Icons.inventory_2,
-              const Color(0xFF10B981),
-              () => controller.trackInteraction('products_tapped'),
-            ),
-            _buildQuickActionCard(
-              'Rewards',
-              Icons.card_giftcard,
-              const Color(0xFFF59E0B),
-              () => controller.trackInteraction('rewards_tapped'),
-            ),
-            _buildQuickActionCard(
-              'Reports',
-              Icons.bar_chart,
-              const Color(0xFF60A5FA),
-              () => controller.trackInteraction('reports_tapped'),
-            ),
-          ],
-        ),
+        SizedBox(height: isDesktop ? 28 : (isWeb ? 24 : 16)),
+        (isDesktop || isWeb)
+            ? Row(
+                children: [
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      'Scan QR',
+                      Icons.qr_code_scanner,
+                      const Color(0xFF3B82F6),
+                      () => controller.trackInteraction('scan_qr_tapped'),
+                    ),
+                  ),
+                  SizedBox(width: spacing),
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      'Products',
+                      Icons.inventory_2,
+                      const Color(0xFF10B981),
+                      () => controller.trackInteraction('products_tapped'),
+                    ),
+                  ),
+                  SizedBox(width: spacing),
+                  Expanded(
+                    child: _buildQuickActionCard(
+                      'Rewards',
+                      Icons.card_giftcard,
+                      const Color(0xFFF59E0B),
+                      () => controller.trackInteraction('rewards_tapped'),
+                    ),
+                  ),
+                  if (isDesktop) SizedBox(width: spacing),
+                  if (isDesktop)
+                    Expanded(
+                      child: _buildQuickActionCard(
+                        'Reports',
+                        Icons.bar_chart,
+                        const Color(0xFF60A5FA),
+                        () => controller.trackInteraction('reports_tapped'),
+                      ),
+                    ),
+                ],
+              )
+            : GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: spacing,
+                mainAxisSpacing: spacing,
+                childAspectRatio: 1.0,
+                children: [
+                  _buildQuickActionCard(
+                    'Scan QR',
+                    Icons.qr_code_scanner,
+                    const Color(0xFF3B82F6),
+                    () => controller.trackInteraction('scan_qr_tapped'),
+                  ),
+                  _buildQuickActionCard(
+                    'Products',
+                    Icons.inventory_2,
+                    const Color(0xFF10B981),
+                    () => controller.trackInteraction('products_tapped'),
+                  ),
+                  _buildQuickActionCard(
+                    'Rewards',
+                    Icons.card_giftcard,
+                    const Color(0xFFF59E0B),
+                    () => controller.trackInteraction('rewards_tapped'),
+                  ),
+                  if (!isWeb)
+                    _buildQuickActionCard(
+                      'Reports',
+                      Icons.bar_chart,
+                      const Color(0xFF60A5FA),
+                      () => controller.trackInteraction('reports_tapped'),
+                    ),
+                ],
+              ),
       ],
     );
   }
@@ -336,10 +487,16 @@ class HomeTab extends StatelessWidget {
     Color color,
     VoidCallback onTap,
   ) {
-    final iconSize = isWeb ? 64.0 : (isTablet ? 56.0 : 48.0);
-    final iconInnerSize = isWeb ? 32.0 : (isTablet ? 28.0 : 24.0);
-    final titleFontSize = isWeb ? 16.0 : (isTablet ? 14.0 : 12.0);
-    final spacing = isWeb ? 16.0 : 12.0;
+    final iconSize = isDesktop
+        ? 80.0
+        : (isWeb ? 64.0 : (isTablet ? 56.0 : 48.0));
+    final iconInnerSize = isDesktop
+        ? 40.0
+        : (isWeb ? 32.0 : (isTablet ? 28.0 : 24.0));
+    final titleFontSize = isDesktop
+        ? 18.0
+        : (isWeb ? 16.0 : (isTablet ? 14.0 : 12.0));
+    final spacing = isDesktop ? 20.0 : (isWeb ? 16.0 : 12.0);
 
     return GestureDetector(
       onTap: onTap,
@@ -397,7 +554,7 @@ class HomeTab extends StatelessWidget {
   Widget _buildLoyaltyProgramCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isDesktop ? 32 : 24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
@@ -419,10 +576,10 @@ class HomeTab extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Loyalty Program',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: isDesktop ? 24 : 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -447,7 +604,7 @@ class HomeTab extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: isDesktop ? 24 : 20),
           Row(
             children: [
               Expanded(
@@ -478,13 +635,13 @@ class HomeTab extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: isDesktop ? 24 : 20),
           Container(
             width: double.infinity,
-            height: 8,
+            height: isDesktop ? 12 : 8,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(6),
             ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
@@ -492,22 +649,28 @@ class HomeTab extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFF10B981),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(6),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          const Row(
+          SizedBox(height: isDesktop ? 12 : 8),
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 '62% to next level',
-                style: TextStyle(fontSize: 12, color: Color(0xB3FFFFFF)),
+                style: TextStyle(
+                  fontSize: isDesktop ? 14 : 12,
+                  color: const Color(0xB3FFFFFF),
+                ),
               ),
               Text(
                 '1,550 points needed',
-                style: TextStyle(fontSize: 12, color: Color(0xB3FFFFFF)),
+                style: TextStyle(
+                  fontSize: isDesktop ? 14 : 12,
+                  color: const Color(0xB3FFFFFF),
+                ),
               ),
             ],
           ),
@@ -523,7 +686,7 @@ class HomeTab extends StatelessWidget {
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isDesktop ? 20 : 16),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
@@ -531,20 +694,23 @@ class HomeTab extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
+          Icon(icon, color: color, size: isDesktop ? 28 : 24),
+          SizedBox(height: isDesktop ? 12 : 8),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 18,
+            style: TextStyle(
+              fontSize: isDesktop ? 22 : 18,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: isDesktop ? 8 : 4),
           Text(
             label,
-            style: const TextStyle(fontSize: 12, color: Color(0xB3FFFFFF)),
+            style: TextStyle(
+              fontSize: isDesktop ? 14 : 12,
+              color: const Color(0xB3FFFFFF),
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
@@ -557,7 +723,7 @@ class HomeTab extends StatelessWidget {
   Widget _buildPromotionalBanner() {
     return Container(
       width: double.infinity,
-      height: 180,
+      height: isDesktop ? 220 : 180,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
@@ -581,7 +747,7 @@ class HomeTab extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(isDesktop ? 32 : 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
@@ -595,48 +761,54 @@ class HomeTab extends StatelessWidget {
                     color: const Color(0xFFF59E0B),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
+                  child: Text(
                     'LIMITED TIME OFFER',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: isDesktop ? 14 : 12,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                const Text(
+                SizedBox(height: isDesktop ? 16 : 12),
+                Text(
                   'Fragrance Putty Bumper Prizes',
                   style: TextStyle(
-                    fontSize: 22,
+                    fontSize: isDesktop ? 26 : 22,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                SizedBox(height: isDesktop ? 12 : 8),
+                Text(
                   'Win amazing prizes with every purchase',
-                  style: TextStyle(fontSize: 14, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: isDesktop ? 16 : 14,
+                    color: Colors.white,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: isDesktop ? 20 : 16),
                 ElevatedButton(
                   onPressed: () =>
                       controller.trackInteraction('promo_learn_more'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: const Color(0xFFF59E0B),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isDesktop ? 28 : 24,
+                      vertical: isDesktop ? 16 : 12,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
+                  child: Text(
                     'Learn More',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: isDesktop ? 16 : 14,
+                    ),
                   ),
                 ),
               ],
@@ -650,7 +822,7 @@ class HomeTab extends StatelessWidget {
   Widget _buildRecentActivity() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isDesktop ? 24 : 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -668,29 +840,29 @@ class HomeTab extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Recent Activity',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: isDesktop ? 22 : 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1F2937),
+                  color: const Color(0xFF1F2937),
                 ),
               ),
               TextButton(
                 onPressed: () =>
                     controller.trackInteraction('view_all_activity'),
-                child: const Text(
+                child: Text(
                   'View All',
                   style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF3B82F6),
+                    fontSize: isDesktop ? 16 : 14,
+                    color: const Color(0xFF3B82F6),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isDesktop ? 20 : 16),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -711,37 +883,37 @@ class HomeTab extends StatelessWidget {
     final color = _getColor(activity.colorName);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: isDesktop ? 12 : 8),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: isDesktop ? 56 : 48,
+            height: isDesktop ? 56 : 48,
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(iconData, color: color, size: 24),
+            child: Icon(iconData, color: color, size: isDesktop ? 28 : 24),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: isDesktop ? 20 : 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   activity.title,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: isDesktop ? 18 : 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1F2937),
+                    color: const Color(0xFF1F2937),
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: isDesktop ? 6 : 4),
                 Text(
                   activity.subtitle,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF6B7280),
+                  style: TextStyle(
+                    fontSize: isDesktop ? 15 : 14,
+                    color: const Color(0xFF6B7280),
                   ),
                 ),
               ],
@@ -753,15 +925,18 @@ class HomeTab extends StatelessWidget {
               Text(
                 '${activity.points > 0 ? '+' : ''}${activity.points}',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: isDesktop ? 18 : 16,
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: isDesktop ? 6 : 4),
               Text(
                 _formatTimeAgo(activity.timestamp),
-                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                style: TextStyle(
+                  fontSize: isDesktop ? 13 : 12,
+                  color: const Color(0xFF6B7280),
+                ),
               ),
             ],
           ),
@@ -773,7 +948,7 @@ class HomeTab extends StatelessWidget {
   Widget _buildBusinessInsights() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isDesktop ? 24 : 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -788,15 +963,15 @@ class HomeTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Business Insights',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: isDesktop ? 22 : 18,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1F2937),
+              color: const Color(0xFF1F2937),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isDesktop ? 20 : 16),
           Row(
             children: [
               Expanded(
@@ -809,7 +984,7 @@ class HomeTab extends StatelessWidget {
                   const Color(0xFF10B981),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: isDesktop ? 24 : 16),
               Expanded(
                 child: _buildInsightCard(
                   'Peak Hours',
@@ -836,7 +1011,7 @@ class HomeTab extends StatelessWidget {
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isDesktop ? 20 : 16),
       decoration: BoxDecoration(
         color: const Color(0xFFF3F4F6),
         borderRadius: BorderRadius.circular(16),
@@ -846,31 +1021,34 @@ class HomeTab extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
+              Icon(icon, color: color, size: isDesktop ? 24 : 20),
+              SizedBox(width: isDesktop ? 12 : 8),
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 14,
+                style: TextStyle(
+                  fontSize: isDesktop ? 16 : 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1F2937),
+                  color: const Color(0xFF1F2937),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: isDesktop ? 16 : 12),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 18,
+            style: TextStyle(
+              fontSize: isDesktop ? 20 : 18,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1F2937),
+              color: const Color(0xFF1F2937),
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: isDesktop ? 8 : 4),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+            style: TextStyle(
+              fontSize: isDesktop ? 14 : 12,
+              color: const Color(0xFF6B7280),
+            ),
           ),
         ],
       ),
@@ -906,7 +1084,6 @@ class HomeTab extends StatelessWidget {
   String _formatTimeAgo(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
-
     if (difference.inDays > 0) {
       return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
     } else if (difference.inHours > 0) {

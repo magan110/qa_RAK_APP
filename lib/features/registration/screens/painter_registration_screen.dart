@@ -8,6 +8,10 @@ import '../../../core/services/uae_id_ocr_service.dart';
 import '../../../core/services/bank_details_ocr_service.dart';
 import '../../../core/widgets/modern_dropdown.dart';
 
+// NEW: API model + service
+import '../../../core/models/painter_models.dart';
+import '../../../core/services/painter_service.dart';
+
 class PainterRegistrationScreen extends StatefulWidget {
   const PainterRegistrationScreen({super.key});
 
@@ -32,6 +36,7 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
   final _areaController = TextEditingController();
   final _emiratesController = TextEditingController();
   String? _selectedReference;
+
   // Emirates ID Details
   final _emiratesIdController = TextEditingController();
   final _idNameController = TextEditingController();
@@ -41,15 +46,18 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
   final _issueDateController = TextEditingController();
   final _expiryDateController = TextEditingController();
   final _occupationController = TextEditingController();
+
   // Bank Details (Non-Mandatory)
   final _accountHolderController = TextEditingController();
   final _ibanController = TextEditingController();
   final _bankNameController = TextEditingController();
   final _branchNameController = TextEditingController();
   final _bankAddressController = TextEditingController();
+
   bool _isSubmitting = false;
   bool _isProcessingEmiratesId = false;
   bool _isProcessingBankDocument = false;
+
   AnimationController? _mainController;
   AnimationController? _fabController;
   Animation<double>? _fadeAnimation;
@@ -75,11 +83,11 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
     );
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _mainController!,
-            curve: const Interval(0.2, 0.7, curve: Curves.easeOutCubic),
-          ),
-        );
+      CurvedAnimation(
+        parent: _mainController!,
+        curve: const Interval(0.2, 0.7, curve: Curves.easeOutCubic),
+      ),
+    );
     _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(
         parent: _mainController!,
@@ -90,45 +98,21 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
     _fabController?.forward();
   }
 
-  // Check if both sides are uploaded and process together
+  // ---------- Emirates ID processing ----------
   Future<void> _checkAndProcessEmiratesId() async {
-    // Only process if both front and back images are uploaded
     if (_emiratesIdFrontImage == null ||
         _emiratesIdFrontImage!.isEmpty ||
         _emiratesIdBackImage == null ||
         _emiratesIdBackImage!.isEmpty) {
-      print('=== WAITING FOR BOTH SIDES ===');
-      print('Front: ${_emiratesIdFrontImage != null ? 'Uploaded' : 'Missing'}');
-      print('Back: ${_emiratesIdBackImage != null ? 'Uploaded' : 'Missing'}');
       return;
     }
 
-    setState(() {
-      _isProcessingEmiratesId = true;
-    });
+    setState(() => _isProcessingEmiratesId = true);
 
     try {
-      print('=== EMIRATES ID COMBINED OCR PROCESSING ===');
-      print('Processing front image: $_emiratesIdFrontImage');
-      print('Processing back image: $_emiratesIdBackImage');
-
-      // Process front side
-      final frontData = await UAEIdOCRService.processUAEId(
-        _emiratesIdFrontImage!,
-      );
-      print('Front OCR completed: ${frontData.toJson()}');
-
-      // Process back side
-      final backData = await UAEIdOCRService.processUAEId(
-        _emiratesIdBackImage!,
-      );
-      print('Back OCR completed: ${backData.toJson()}');
-
-      // Combine data from both sides
+      final frontData = await UAEIdOCRService.processUAEId(_emiratesIdFrontImage!);
+      final backData = await UAEIdOCRService.processUAEId(_emiratesIdBackImage!);
       final combinedData = _combineEmiratesIdData(frontData, backData);
-      print('Combined data: ${combinedData.toJson()}');
-
-      // Fill all form fields with combined data
       _fillEmiratesIdFields(combinedData);
 
       if (mounted) {
@@ -140,7 +124,7 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Emirates ID processed successfully! Both sides analyzed and all fields auto-filled.',
+                    'Emirates ID processed successfully!',
                   ),
                 ),
               ],
@@ -152,9 +136,6 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
         );
       }
     } catch (e) {
-      print('=== EMIRATES ID OCR ERROR ===');
-      print('Error: $e');
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -172,18 +153,12 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessingEmiratesId = false;
-        });
-      }
+      if (mounted) setState(() => _isProcessingEmiratesId = false);
     }
   }
 
-  // Combine data from front and back sides
   UAEIdData _combineEmiratesIdData(UAEIdData frontData, UAEIdData backData) {
     return UAEIdData(
-      // Prefer front side for basic personal info
       name: frontData.name ?? backData.name,
       idNumber: frontData.idNumber ?? backData.idNumber,
       dateOfBirth: frontData.dateOfBirth ?? backData.dateOfBirth,
@@ -192,8 +167,6 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
       expiryDate: frontData.expiryDate ?? backData.expiryDate,
       sex: frontData.sex ?? backData.sex,
       signature: frontData.signature ?? backData.signature,
-
-      // Prefer back side for professional info
       cardNumber: backData.cardNumber ?? frontData.cardNumber,
       occupation: backData.occupation ?? frontData.occupation,
       employer: backData.employer ?? frontData.employer,
@@ -201,184 +174,126 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
     );
   }
 
-  // Get status color based on upload and processing state
   Color _getStatusColor() {
     if (_isProcessingEmiratesId) return Colors.blue;
-
     final frontUploaded =
         _emiratesIdFrontImage != null && _emiratesIdFrontImage!.isNotEmpty;
     final backUploaded =
         _emiratesIdBackImage != null && _emiratesIdBackImage!.isNotEmpty;
-
     if (frontUploaded && backUploaded) return Colors.green;
     if (frontUploaded || backUploaded) return Colors.orange;
     return Colors.grey;
   }
 
-  // Get status icon based on upload and processing state
   IconData _getStatusIcon() {
     final frontUploaded =
         _emiratesIdFrontImage != null && _emiratesIdFrontImage!.isNotEmpty;
     final backUploaded =
         _emiratesIdBackImage != null && _emiratesIdBackImage!.isNotEmpty;
-
     if (frontUploaded && backUploaded) return Icons.check_circle;
     if (frontUploaded || backUploaded) return Icons.upload_file;
     return Icons.info_outline;
   }
 
-  // Get status message based on upload and processing state
   String _getStatusMessage() {
     if (_isProcessingEmiratesId) {
-      return 'Processing both sides of Emirates ID... Please wait while we extract and combine all information.';
+      return 'Processing both sides of Emirates ID...';
     }
-
     final frontUploaded =
         _emiratesIdFrontImage != null && _emiratesIdFrontImage!.isNotEmpty;
     final backUploaded =
         _emiratesIdBackImage != null && _emiratesIdBackImage!.isNotEmpty;
 
     if (frontUploaded && backUploaded) {
-      return '✅ Both sides uploaded successfully! All fields have been auto-filled with extracted data.';
+      return '✅ Both sides uploaded successfully!';
     }
-
     if (frontUploaded && !backUploaded) {
-      return 'Front side uploaded. Please upload the back side to start processing and auto-fill fields.';
+      return 'Front side uploaded. Please upload the back side.';
     }
-
     if (!frontUploaded && backUploaded) {
-      return 'Back side uploaded. Please upload the front side to start processing and auto-fill fields.';
+      return 'Back side uploaded. Please upload the front side.';
     }
-
-    return 'Please upload both front and back sides of your Emirates ID to auto-fill the form fields.';
+    return 'Please upload both sides of your Emirates ID.';
   }
 
-  // Get bank document status color based on upload and processing state
+  // ---------- Bank doc OCR ----------
   Color _getBankDocumentStatusColor() {
     if (_isProcessingBankDocument) return Colors.blue;
-
     final bankDocumentUploaded =
         _bankDocumentImage != null && _bankDocumentImage!.isNotEmpty;
-
     if (bankDocumentUploaded) return Colors.green;
     return Colors.grey;
   }
 
-  // Get bank document status icon based on upload and processing state
   IconData _getBankDocumentStatusIcon() {
     final bankDocumentUploaded =
         _bankDocumentImage != null && _bankDocumentImage!.isNotEmpty;
-
     if (bankDocumentUploaded) return Icons.check_circle;
     return Icons.info_outline;
   }
 
-  // Get bank document status message based on upload and processing state
   String _getBankDocumentStatusMessage() {
     if (_isProcessingBankDocument) {
-      return 'Processing bank document... Please wait while we extract your bank details.';
+      return 'Processing bank document...';
     }
-
     final bankDocumentUploaded =
         _bankDocumentImage != null && _bankDocumentImage!.isNotEmpty;
-
     if (bankDocumentUploaded) {
-      return '✅ Bank document uploaded successfully! Bank details have been auto-filled from the document.';
+      return '✅ Bank document uploaded successfully!';
     }
-
-    return 'Upload a bank statement, cheque, or bank document to auto-fill your bank details.';
+    return 'Upload a bank statement, cheque, or bank document.';
   }
 
-  // Enhanced form field filling with automatic mapping
   void _fillEmiratesIdFields(UAEIdData data, {bool mergeWithExisting = false}) {
-    print('=== ENHANCED FORM FIELD FILLING ===');
-    print('Merge with existing: $mergeWithExisting');
-    print('Input data: ${data.toJson()}');
-
-    // Get enhanced field mapping
     final fieldMapping = UAEIdOCRService.getFormFieldMapping(data);
-    print('Field mapping: $fieldMapping');
 
-    // Auto-fill personal details from name
     if (fieldMapping['firstName'] != null &&
         (!mergeWithExisting || _firstNameController.text.isEmpty)) {
       _firstNameController.text = fieldMapping['firstName']!;
-      print('Auto-filled first name: ${fieldMapping['firstName']}');
     }
-
     if (fieldMapping['middleName'] != null &&
         (!mergeWithExisting || _middleNameController.text.isEmpty)) {
       _middleNameController.text = fieldMapping['middleName']!;
-      print('Auto-filled middle name: ${fieldMapping['middleName']}');
     }
-
     if (fieldMapping['lastName'] != null &&
         (!mergeWithExisting || _lastNameController.text.isEmpty)) {
       _lastNameController.text = fieldMapping['lastName']!;
-      print('Auto-filled last name: ${fieldMapping['lastName']}');
     }
-
-    // Fill ID name field
     if (fieldMapping['idName'] != null &&
         (!mergeWithExisting || _idNameController.text.isEmpty)) {
       _idNameController.text = fieldMapping['idName']!;
-      print('Set ID name: ${fieldMapping['idName']}');
     }
 
-    // Fill Emirates ID specific fields (merge logic for each field)
-    if (data.idNumber != null &&
-        data.idNumber!.isNotEmpty &&
+    if (data.idNumber?.isNotEmpty == true &&
         (!mergeWithExisting || _emiratesIdController.text.isEmpty)) {
       _emiratesIdController.text = data.idNumber!;
-      print('Set Emirates ID: ${data.idNumber}');
     }
-
-    if (data.dateOfBirth != null &&
-        data.dateOfBirth!.isNotEmpty &&
+    if (data.dateOfBirth?.isNotEmpty == true &&
         (!mergeWithExisting || _dobController.text.isEmpty)) {
       _dobController.text = data.dateOfBirth!;
-      print('Set DOB: ${data.dateOfBirth}');
     }
-
-    if (data.nationality != null &&
-        data.nationality!.isNotEmpty &&
+    if (data.nationality?.isNotEmpty == true &&
         (!mergeWithExisting || _nationalityController.text.isEmpty)) {
       _nationalityController.text = data.nationality!;
-      print('Set nationality: ${data.nationality}');
     }
-
-    if (data.issuingDate != null &&
-        data.issuingDate!.isNotEmpty &&
+    if (data.issuingDate?.isNotEmpty == true &&
         (!mergeWithExisting || _issueDateController.text.isEmpty)) {
       _issueDateController.text = data.issuingDate!;
-      print('Set issue date: ${data.issuingDate}');
     }
-
-    if (data.expiryDate != null &&
-        data.expiryDate!.isNotEmpty &&
+    if (data.expiryDate?.isNotEmpty == true &&
         (!mergeWithExisting || _expiryDateController.text.isEmpty)) {
       _expiryDateController.text = data.expiryDate!;
-      print('Set expiry date: ${data.expiryDate}');
     }
-
-    // Fill new extracted fields (merge logic)
-    if (data.occupation != null &&
-        data.occupation!.isNotEmpty &&
+    if (data.occupation?.isNotEmpty == true &&
         (!mergeWithExisting || _occupationController.text.isEmpty)) {
       _occupationController.text = data.occupation!;
-      print('Set occupation: ${data.occupation}');
     }
-
-    if (data.employer != null &&
-        data.employer!.isNotEmpty &&
+    if (data.employer?.isNotEmpty == true &&
         (!mergeWithExisting || _companyDetailsController.text.isEmpty)) {
       _companyDetailsController.text = data.employer!;
-      print('Set company details/employer: ${data.employer}');
     }
 
-    // Set issuing place in Emirates dropdown if available (merge logic)
-    if (data.issuingPlace != null &&
-        data.issuingPlace!.isNotEmpty &&
+    if (data.issuingPlace?.isNotEmpty == true &&
         (!mergeWithExisting || _emiratesController.text.isEmpty)) {
       final emirates = [
         'Dubai',
@@ -390,52 +305,26 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
         'Fujairah',
       ];
       final matchingEmirate = emirates.firstWhere(
-        (emirate) =>
-            emirate.toLowerCase().contains(data.issuingPlace!.toLowerCase()) ||
-            data.issuingPlace!.toLowerCase().contains(emirate.toLowerCase()),
+        (e) =>
+            e.toLowerCase().contains(data.issuingPlace!.toLowerCase()) ||
+            data.issuingPlace!.toLowerCase().contains(e.toLowerCase()),
         orElse: () => '',
       );
       if (matchingEmirate.isNotEmpty) {
         _emiratesController.text = matchingEmirate;
-        print(
-          'Set Emirates: $matchingEmirate (from issuing place: ${data.issuingPlace})',
-        );
       }
     }
-
-    print('=== NEW FIELDS FILLED ===');
-    print('Card Number: ${data.cardNumber}');
-    print('Occupation: ${data.occupation}');
-    print('Employer: ${data.employer}');
-    print('Issuing Place: ${data.issuingPlace}');
-    print('=== FORM FIELDS FILLED ===');
-
-    // Force a rebuild to show the updated fields
     setState(() {});
   }
 
-  // Process bank document with OCR
   Future<void> _processBankDocument() async {
-    if (_bankDocumentImage == null || _bankDocumentImage!.isEmpty) {
-      print('=== NO BANK DOCUMENT TO PROCESS ===');
-      return;
-    }
+    if (_bankDocumentImage == null || _bankDocumentImage!.isEmpty) return;
 
-    setState(() {
-      _isProcessingBankDocument = true;
-    });
+    setState(() => _isProcessingBankDocument = true);
 
     try {
-      print('=== BANK DOCUMENT OCR PROCESSING ===');
-      print('Processing bank document: $_bankDocumentImage');
-
-      // Process bank document using the new service
-      final bankData = await BankDetailsOCRService.processBankDocument(
-        _bankDocumentImage!,
-      );
-      print('Bank OCR completed: ${bankData.toJson()}');
-
-      // Fill bank detail fields with extracted data
+      final bankData =
+          await BankDetailsOCRService.processBankDocument(_bankDocumentImage!);
       _fillBankDetailsFields(bankData);
 
       if (mounted) {
@@ -446,9 +335,7 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                 Icon(Icons.check_circle, color: Colors.white, size: 20),
                 SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    'Bank document processed successfully! Bank details have been auto-filled.',
-                  ),
+                  child: Text('Bank document processed successfully!'),
                 ),
               ],
             ),
@@ -459,9 +346,6 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
         );
       }
     } catch (e) {
-      print('=== BANK DOCUMENT OCR ERROR ===');
-      print('Error: $e');
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -479,48 +363,27 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessingBankDocument = false;
-        });
-      }
+      if (mounted) setState(() => _isProcessingBankDocument = false);
     }
   }
 
-  // Fill bank details form fields with OCR data
   void _fillBankDetailsFields(BankDetailsData data) {
-    print('=== FILLING BANK DETAILS FIELDS ===');
-    print('Bank data: ${data.toJson()}');
-
     if (data.accountHolderName != null &&
         _accountHolderController.text.isEmpty) {
       _accountHolderController.text = data.accountHolderName!;
-      print('Set account holder: ${data.accountHolderName}');
     }
-
     if (data.ibanNumber != null && _ibanController.text.isEmpty) {
       _ibanController.text = data.ibanNumber!;
-      print('Set IBAN: ${data.ibanNumber}');
     }
-
     if (data.bankName != null && _bankNameController.text.isEmpty) {
       _bankNameController.text = data.bankName!;
-      print('Set bank name: ${data.bankName}');
     }
-
     if (data.branchName != null && _branchNameController.text.isEmpty) {
       _branchNameController.text = data.branchName!;
-      print('Set branch name: ${data.branchName}');
     }
-
     if (data.bankAddress != null && _bankAddressController.text.isEmpty) {
       _bankAddressController.text = data.bankAddress!;
-      print('Set bank address: ${data.bankAddress}');
     }
-
-    print('=== BANK FIELDS FILLED ===');
-
-    // Force a rebuild to show the updated fields
     setState(() {});
   }
 
@@ -557,9 +420,9 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
       backgroundColor: Colors.grey.shade50,
       appBar: _buildModernAppBar(),
       body: FadeTransition(
-        opacity: _fadeAnimation ?? AlwaysStoppedAnimation(1.0),
+        opacity: _fadeAnimation ?? const AlwaysStoppedAnimation(1.0),
         child: SlideTransition(
-          position: _slideAnimation ?? AlwaysStoppedAnimation(Offset.zero),
+          position: _slideAnimation ?? const AlwaysStoppedAnimation(Offset.zero),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -575,15 +438,15 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: ScaleTransition(
-                scale: _scaleAnimation ?? AlwaysStoppedAnimation(1.0),
+                scale: _scaleAnimation ?? const AlwaysStoppedAnimation(1.0),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     children: [
-                      // Header with animation
                       _buildAnimatedHeader(),
                       const SizedBox(height: 30),
-                      // Personal Details Section
+
+                      // Personal Details
                       _buildModernSection(
                         title: 'Personal Details',
                         icon: Icons.person_rounded,
@@ -644,7 +507,8 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                               'Ras Al Khaimah',
                               'Fujairah',
                             ],
-                            value: _emiratesController.text.isEmpty
+                            // FIXED: show selected value correctly
+                            value: _emiratesController.text.isNotEmpty
                                 ? _emiratesController.text
                                 : null,
                             onChanged: (value) {
@@ -677,31 +541,24 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                             label: 'Profile Photo',
                             icon: Icons.camera_alt_outlined,
                             onFileSelected: (value) {
-                              print(
-                                '=== PAINTER REGISTRATION PHOTO CALLBACK ===',
-                              );
-                              print('Received value: $value');
-                              print('Previous _photoImage: $_photoImage');
                               setState(() => _photoImage = value);
-                              print('Updated _photoImage: $_photoImage');
                             },
                             delay: const Duration(milliseconds: 500),
-                            allowedExtensions: const [
-                              '*',
-                            ], // Allow all file types
+                            allowedExtensions: const ['*'],
                             maxSizeInMB: 10.0,
                             currentFilePath: _photoImage,
                             formType: 'painter',
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 20),
-                      // Emirates ID Section
+
+                      // Emirates ID
                       _buildModernSection(
                         title: 'Emirates ID',
                         icon: Icons.badge_outlined,
                         children: [
-                          // Emirates ID Upload with OCR Processing Status
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -750,7 +607,6 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // Front Side Upload
                           FileUploadWidget(
                             label: 'Emirates ID - Front Side',
                             icon: Icons.credit_card_outlined,
@@ -765,7 +621,6 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                             formType: 'painter',
                           ),
                           const SizedBox(height: 16),
-                          // Back Side Upload
                           FileUploadWidget(
                             label: 'Emirates ID - Back Side',
                             icon: Icons.credit_card_outlined,
@@ -837,20 +692,19 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 20),
-                      // Bank Details Section
+
+                      // Bank Details
                       _buildModernSection(
                         title: 'Bank Details',
                         icon: Icons.account_balance_outlined,
                         isOptional: true,
                         children: [
-                          // Bank Document OCR Processing Status
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: _getBankDocumentStatusColor().withOpacity(
-                                0.1,
-                              ),
+                              color: _getBankDocumentStatusColor().withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: _getBankDocumentStatusColor(),
@@ -895,7 +749,6 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // Bank Document Upload
                           FileUploadWidget(
                             label: 'Bank Statement or Cheque',
                             icon: Icons.receipt_long_outlined,
@@ -904,12 +757,7 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                               _processBankDocument();
                             },
                             delay: const Duration(milliseconds: 50),
-                            allowedExtensions: const [
-                              'jpg',
-                              'jpeg',
-                              'png',
-                              'pdf',
-                            ],
+                            allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf'],
                             maxSizeInMB: 10.0,
                             currentFilePath: _bankDocumentImage,
                             formType: 'painter',
@@ -956,8 +804,8 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 40),
-                      // Submit Button
                       _buildAnimatedSubmitButton(),
                       const SizedBox(height: 40),
                     ],
@@ -986,7 +834,7 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
               child: CustomBackButton(animated: false, size: 36),
             )
           : null,
-      title: Text(
+      title: const Text(
         'Painter Registration',
         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
       ),
@@ -1018,43 +866,21 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
           ),
         ],
       ),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 800),
-            curve: Curves.easeOut,
-            builder: (context, value, child) {
-              return Transform.translate(
-                offset: Offset(0, 30 * (1 - value)),
-                child: Opacity(opacity: value, child: child),
-              );
-            },
-            child: Text(
-              'Welcome!',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+          Text(
+            'Welcome!',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
           ),
-          const SizedBox(height: 8),
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 800),
-            curve: Curves.easeOut,
-            builder: (context, value, child) {
-              return Transform.translate(
-                offset: Offset(0, 30 * (1 - value)),
-                child: Opacity(opacity: value, child: child),
-              );
-            },
-            child: Text(
-              'Complete your painter registration',
-              style: TextStyle(fontSize: 16, color: Colors.white70),
-            ),
+          SizedBox(height: 8),
+          Text(
+            'Complete your painter registration',
+            style: TextStyle(fontSize: 16, color: Colors.white70),
           ),
         ],
       ),
@@ -1082,24 +908,20 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Header
+          // header
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.blue.shade50,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             ),
             child: Row(
               children: [
                 Container(
                   width: 48,
                   height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
-                  ),
+                  decoration:
+                      const BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
                   child: Icon(icon, color: Colors.white, size: 24),
                 ),
                 const SizedBox(width: 16),
@@ -1107,29 +929,22 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade800,
-                        ),
-                      ),
-                      if (isOptional)
-                        Text(
-                          'Optional',
+                      Text(title,
                           style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade800)),
+                      if (isOptional)
+                        Text('Optional',
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey.shade500)),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          // Section Content
+          // content
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -1143,62 +958,56 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
   }
 
   Widget _buildModernTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    Duration delay = Duration.zero,
-    bool isPhone = false,
-    bool isRequired = true,
-  }) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeOut,
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(0, 20 * (1 - value)),
-          child: Opacity(opacity: value, child: child),
-        );
-      },
-      child: TextFormField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: isRequired ? '$label *' : label,
-          prefixIcon: Icon(icon, color: Colors.grey.shade600),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.blue, width: 2),
-          ),
-          filled: true,
-          fillColor: Colors.grey.shade50,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
+  required TextEditingController controller,
+  required String label,
+  required IconData icon,
+  Duration delay = Duration.zero,
+  bool isPhone = false,
+  bool isRequired = true,
+}) {
+  return TweenAnimationBuilder<double>(
+    tween: Tween<double>(begin: 0, end: 1),
+    duration: const Duration(milliseconds: 500),
+    curve: Curves.easeOut,
+    builder: (context, value, child) {
+      return Transform.translate(
+        offset: Offset(0, 20 * (1 - value)),
+        child: Opacity(opacity: value, child: child),
+      );
+    },
+    child: TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: isRequired ? '$label *' : label,
+        prefixIcon: Icon(icon, color: Colors.grey.shade600),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
         ),
-        keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
-        validator: (value) {
-          if (isRequired && (value == null || value.trim().isEmpty)) {
-            return 'Please enter $label';
-          }
-          if (isPhone && value != null && value.isNotEmpty) {
-            if (!RegExp(r'^[50|52|54|55|56|58]\d{7}$').hasMatch(value)) {
-              return 'Please enter valid UAE mobile number';
-            }
-          }
-          return null;
-        },
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.blue, width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
-    );
-  }
+      keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
+      // ✅ No phone-format validation — allow any input
+      validator: (value) {
+        if (isRequired && (value == null || value.trim().isEmpty)) {
+          return 'Please enter $label';
+        }
+        return null;
+      },
+    ),
+  );
+}
+
 
   Widget _buildModernDateField({
     required TextEditingController controller,
@@ -1222,10 +1031,7 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
         decoration: InputDecoration(
           labelText: isRequired ? '$label *' : label,
           prefixIcon: Icon(icon, color: Colors.grey.shade600),
-          suffixIcon: const Icon(
-            Icons.calendar_today_rounded,
-            color: Colors.grey,
-          ),
+          suffixIcon: const Icon(Icons.calendar_today_rounded, color: Colors.grey),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.grey.shade300),
@@ -1240,10 +1046,7 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
           ),
           filled: true,
           fillColor: Colors.grey.shade50,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
         readOnly: true,
         onTap: () async {
@@ -1395,7 +1198,7 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
                     Text('Submitting...', style: AppTheme.body),
                   ],
                 )
-              : Text(
+              : const Text(
                   'Submit Registration',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
@@ -1414,20 +1217,13 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.help_outline_rounded,
-                size: 48,
-                color: Colors.blue,
-              ),
+              const Icon(Icons.help_outline_rounded, size: 48, color: Colors.blue),
               const SizedBox(height: 16),
-              Text(
-                'Registration Help',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+              const Text('Registration Help',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              Text(
-                'Fill in all required fields marked with *. '
-                'Bank details are optional but recommended for payments.',
+              const Text(
+                'Fill in all required fields marked with *. Bank details are optional but recommended for payments.',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -1445,13 +1241,9 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
     );
   }
 
-  // Map OCR results to form fields
+  // Map OCR (optional helper)
   void _mapOcrResultsToFields(Map<String, String> ocrResults) {
-    print('=== MAPPING OCR RESULTS ===');
-    print('OCR Results: $ocrResults');
-
-    // Map basic fields
-    if (ocrResults['name'] != null && ocrResults['name']!.isNotEmpty) {
+    if (ocrResults['name']?.isNotEmpty == true) {
       final nameParts = ocrResults['name']!.split(' ');
       if (nameParts.isNotEmpty) {
         _firstNameController.text = nameParts.first;
@@ -1461,53 +1253,108 @@ class _PainterRegistrationScreenState extends State<PainterRegistrationScreen>
         _lastNameController.text = nameParts.last;
       }
       if (nameParts.length > 2) {
-        _middleNameController.text = nameParts
-            .skip(1)
-            .take(nameParts.length - 2)
-            .join(' ');
+        _middleNameController.text =
+            nameParts.skip(1).take(nameParts.length - 2).join(' ');
       }
     }
-
-    if (ocrResults['aadhaar'] != null && ocrResults['aadhaar']!.isNotEmpty) {
+    if (ocrResults['aadhaar']?.isNotEmpty == true) {
       _emiratesIdController.text = ocrResults['aadhaar']!;
     }
-
-    if (ocrResults['dob'] != null && ocrResults['dob']!.isNotEmpty) {
+    if (ocrResults['dob']?.isNotEmpty == true) {
       _dobController.text = ocrResults['dob']!;
     }
-
-    // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white, size: 20),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text('OCR data mapped to form fields successfully!'),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-
     setState(() {});
   }
 
+  // --------------------- SUBMIT ---------------------
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isSubmitting = true;
-      });
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
-      setState(() {
-        _isSubmitting = false;
-      });
-      if (mounted) {
-        Navigator.pushNamed(context, '/success');
+      setState(() => _isSubmitting = true);
+
+      try {
+        final req = PainterRegistrationRequest(
+          // Personal
+          firstName: _firstNameController.text.trim(),
+          middleName: _middleNameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+          mobileNumber: _mobileController.text.trim(),
+          address: _addressController.text.trim(),
+          area: _areaController.text.trim(),
+          emirates: _emiratesController.text.trim(),
+          reference: (_selectedReference ?? '').trim(),
+
+          // Emirates ID
+          emiratesIdNumber: _emiratesIdController.text.trim(),
+          idName: _idNameController.text.trim(),
+          dateOfBirth: _dobController.text.trim(),
+          nationality: _nationalityController.text.trim(),
+          companyDetails: _companyDetailsController.text.trim(),
+          issueDate: _issueDateController.text.trim(),
+          expiryDate: _expiryDateController.text.trim(),
+          occupation: _occupationController.text.trim(),
+
+          // Bank
+          accountHolderName: _accountHolderController.text.trim(),
+          ibanNumber: PainterService.formatIban(_ibanController.text.trim()),
+          bankName: _bankNameController.text.trim(),
+          branchName: _branchNameController.text.trim(),
+          bankAddress: _bankAddressController.text.trim(),
+        );
+
+        final resp = await PainterService.registerPainter(req);
+
+        if (!mounted) return;
+        setState(() => _isSubmitting = false);
+
+        if (resp.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('Saved! ID: ${resp.influencerCode ?? 'N/A'}')),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          Navigator.pop(context); // or pushNamed('/success')
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(resp.message)),
+                ],
+              ),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Registration failed: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+          ),
+        );
       }
     }
   }

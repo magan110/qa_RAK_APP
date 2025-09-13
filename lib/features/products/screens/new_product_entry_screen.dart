@@ -5,6 +5,8 @@ import 'package:web/web.dart' as web;
 import 'dart:js_interop';
 import '../../../core/widgets/file_upload_widget.dart';
 import '../../../core/widgets/modern_dropdown.dart';
+import '../../../core/models/sample_lead_request.dart';
+import '../../../core/services/sample_lead_service.dart';
 
 @JS()
 @staticInterop
@@ -124,44 +126,110 @@ class _NewProductEntryState extends State<NewProductEntry>
       });
 
       try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('area', areaController.text);
-        await prefs.setString('cityDistrict', cityDistrictController.text);
-        await prefs.setString('pinCode', pinCodeController.text);
-        await prefs.setString('customerName', customerNameController.text);
-        await prefs.setString('contractorName', contractorNameController.text);
-        await prefs.setString('mobile', mobileController.text);
-        await prefs.setString('address', addressController.text);
-        await prefs.setString('siteType', siteTypeController.text);
-        await prefs.setString('sampleReceiver', sampleReceiverController.text);
-        await prefs.setString('targetDate', targetDateController.text);
-        await prefs.setString('remarks', remarksController.text);
-        await prefs.setString('region', regionController.text);
-        await prefs.setString('latitude', latitudeController.text);
-        await prefs.setString('longitude', longitudeController.text);
-        await prefs.setString('samplingDate', samplingDateController.text);
-        await prefs.setString('product', productController.text);
-        await prefs.setString('expectedOrder', expectedOrderController.text);
-        await prefs.setString('sampleType', sampleTypeController.text);
+        // Create the sample lead request
+        final request = SampleLeadRequest(
+          area: areaController.text.isNotEmpty ? areaController.text : null,
+          cityDistrict: cityDistrictController.text.isNotEmpty ? cityDistrictController.text : null,
+          pinCode: pinCodeController.text.isNotEmpty ? pinCodeController.text : null,
+          customerName: customerNameController.text.isNotEmpty ? customerNameController.text : null,
+          contractorName: contractorNameController.text.isNotEmpty ? contractorNameController.text : null,
+          mobileNumber: mobileController.text.isNotEmpty ? mobileController.text : null,
+          address: addressController.text.isNotEmpty ? addressController.text : null,
+          siteType: siteTypeController.text.isNotEmpty ? siteTypeController.text : null,
+          sampleLocalReceivedPerson: sampleReceiverController.text.isNotEmpty ? sampleReceiverController.text : null,
+          targetDateOfConversion: targetDateController.text.isNotEmpty ? targetDateController.text : null,
+          remarks: remarksController.text.isNotEmpty ? remarksController.text : null,
+          regionOfConstruction: regionController.text.isNotEmpty ? regionController.text : null,
+          latitude: latitudeController.text.isNotEmpty ? latitudeController.text : null,
+          longitude: longitudeController.text.isNotEmpty ? longitudeController.text : null,
+          samplingDate: samplingDateController.text.isNotEmpty ? samplingDateController.text : null,
+          product: productController.text.isNotEmpty ? productController.text : null,
+          siteMaterialExpectedOrder: expectedOrderController.text.isNotEmpty ? expectedOrderController.text : null,
+          sampleType: sampleTypeController.text.isNotEmpty ? sampleTypeController.text : null,
+        );
 
-        // Simulate API call
-        await Future.delayed(const Duration(seconds: 2));
+        // Submit to API
+        final response = await SampleLeadService.registerSampleLead(request);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(child: Text('Form data saved successfully!')),
-                ],
+          if (response.success) {
+            // Save to local storage as backup
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('area', areaController.text);
+            await prefs.setString('cityDistrict', cityDistrictController.text);
+            await prefs.setString('pinCode', pinCodeController.text);
+            await prefs.setString('customerName', customerNameController.text);
+            await prefs.setString('contractorName', contractorNameController.text);
+            await prefs.setString('mobile', mobileController.text);
+            await prefs.setString('address', addressController.text);
+            await prefs.setString('siteType', siteTypeController.text);
+            await prefs.setString('sampleReceiver', sampleReceiverController.text);
+            await prefs.setString('targetDate', targetDateController.text);
+            await prefs.setString('remarks', remarksController.text);
+            await prefs.setString('region', regionController.text);
+            await prefs.setString('latitude', latitudeController.text);
+            await prefs.setString('longitude', longitudeController.text);
+            await prefs.setString('samplingDate', samplingDateController.text);
+            await prefs.setString('product', productController.text);
+            await prefs.setString('expectedOrder', expectedOrderController.text);
+            await prefs.setString('sampleType', sampleTypeController.text);
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(response.message),
+                          if (response.documentNumber != null)
+                            Text(
+                              'Document Number: ${response.documentNumber}',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 5),
               ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(seconds: 4),
-            ),
-          );
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.error, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(response.message),
+                          if (response.error != null)
+                            Text(
+                              'Error: ${response.error}',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 5),
+              ),
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -171,7 +239,7 @@ class _NewProductEntryState extends State<NewProductEntry>
                 children: [
                   Icon(Icons.warning, color: Colors.white, size: 20),
                   SizedBox(width: 8),
-                  Expanded(child: Text('Error saving data: ${e.toString()}')),
+                  Expanded(child: Text('Unexpected error: ${e.toString()}')),
                 ],
               ),
               backgroundColor: Colors.orange,
@@ -672,64 +740,65 @@ class _NewProductEntryState extends State<NewProductEntry>
   }
 
   Widget _buildModernTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    Duration delay = Duration.zero,
-    bool isPhone = false,
-    bool isRequired = true,
-    Widget? suffix,
-  }) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeOut,
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(0, 20 * (1 - value)),
-          child: Opacity(opacity: value, child: child),
-        );
-      },
-      child: TextFormField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: isRequired ? '$label *' : label,
-          prefixIcon: Icon(icon, color: Colors.grey.shade600),
-          suffixIcon: suffix,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.blue, width: 2),
-          ),
-          filled: true,
-          fillColor: Colors.grey.shade50,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
+  required TextEditingController controller,
+  required String label,
+  required IconData icon,
+  Duration delay = Duration.zero,
+  bool isPhone = false,
+  bool isRequired = true,
+  Widget? suffix,
+}) {
+  return TweenAnimationBuilder<double>(
+    tween: Tween<double>(begin: 0, end: 1),
+    duration: const Duration(milliseconds: 500),
+    curve: Curves.easeOut,
+    builder: (context, value, child) {
+      return Transform.translate(
+        offset: Offset(0, 20 * (1 - value)),
+        child: Opacity(opacity: value, child: child),
+      );
+    },
+    child: TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: isRequired ? '$label *' : label,
+        prefixIcon: Icon(icon, color: Colors.grey.shade600),
+        suffixIcon: suffix,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
         ),
-        keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
-        validator: (value) {
-          if (isRequired && (value == null || value.trim().isEmpty)) {
-            return 'Please enter $label';
-          }
-          if (isPhone && value != null && value.isNotEmpty) {
-            if (!RegExp(r'^[50|52|54|55|56|58]\d{7}$').hasMatch(value)) {
-              return 'Please enter valid UAE mobile number';
-            }
-          }
-          return null;
-        },
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.blue, width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
       ),
-    );
-  }
+      keyboardType: isPhone ? TextInputType.number : TextInputType.text,
+      validator: (value) {
+        if (isRequired && (value == null || value.trim().isEmpty)) {
+          return 'Please enter $label';
+        }
+        if (isPhone && value != null && value.isNotEmpty) {
+          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+            return 'Please enter valid number';
+          }
+        }
+        return null;
+      },
+    ),
+  );
+}
+
 
   Widget _buildModernDateField({
     required TextEditingController controller,
